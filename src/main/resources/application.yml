@@ -19,18 +19,18 @@ app:
     issuer: "restaurant-system"
     access-expiration-ms: 900000  # 1 ngày
     refresh-expiration-ms: 1209600000
-  admin:
-    username: admin
-    password: ${ADMIN_PASSWORD:123456}
-  cashier:
-    username: cashier
-    password: ${CASHIER_PASSWORD:123456}
-  waiter:
-    username: waiter
-    password: ${WAITER_PASSWORD:123456}
-  kitchen:
-    username: kitchen
-    password: ${KITCHEN_PASSWORD:123456}   # lấy từ biến môi trường, nếu không có thì dùng 123456
+  # admin:
+  #   username: admin
+  #   password: ${ADMIN_PASSWORD:123456}
+  # cashier:
+  #   username: cashier
+  #   password: ${CASHIER_PASSWORD:123456}
+  # waiter:
+  #   username: waiter
+  #   password: ${WAITER_PASSWORD:123456}
+  # kitchen:
+  #   username: kitchen
+  #   password: ${KITCHEN_PASSWORD:123456}   # lấy từ biến môi trường, nếu không có thì dùng 123456
   cors:
     allowed-origins: http://localhost:5173,http://localhost:3000
 

@@ -1,12 +1,14 @@
 package com.example.restaurant.dto.auth;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
+
 @Data
-@AllArgsConstructor
+@Builder
 public class AuthResponse {
+    private String username;
+    private String roleName;
     private String accessToken;
     private String refreshToken;
-    private String tokenType = "Bearer";
 }

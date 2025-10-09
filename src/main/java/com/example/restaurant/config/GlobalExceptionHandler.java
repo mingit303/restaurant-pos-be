@@ -13,11 +13,11 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-
+import java.util.HashMap;
+import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Fallback cho mọi Exception chưa được handle riêng
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -56,15 +56,20 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
-        String messages = ex.getBindingResult().getFieldErrors().stream()
-                .map(f -> f.getField() + ": " + f.getDefaultMessage())
-                .reduce((m1, m2) -> m1 + "; " + m2)
-                .orElse("Validation error");
-
-        return ResponseEntity.badRequest().body(
-            buildError(HttpStatus.BAD_REQUEST, messages, request.getRequestURI())
+    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
+        Map<String, String> fieldErrors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+            fieldErrors.put(error.getField(), error.getDefaultMessage())
         );
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("message", "Dữ liệu không hợp lệ");
+        body.put("errors", fieldErrors);
+        body.put("path", request.getRequestURI());
+        body.put("timestamp", LocalDateTime.now());
+
+        return ResponseEntity.badRequest().body(body);
     }
 
 

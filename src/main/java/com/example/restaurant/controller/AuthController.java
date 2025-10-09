@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
@@ -20,7 +21,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshRequest req) {
-        return ResponseEntity.ok(authService.refresh(req));
+    public ResponseEntity<TokenRefreshResponse> refresh(@RequestBody RefreshTokenRequest req) {
+        return ResponseEntity.ok(authService.refresh(req.getRefreshToken()));
     }
 }

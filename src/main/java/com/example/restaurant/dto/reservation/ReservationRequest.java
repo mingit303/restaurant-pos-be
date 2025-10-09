@@ -4,7 +4,7 @@ import jakarta.validation.constraints.*;                 // 2: Bean Validation
 import java.time.*;                                      // 3
 
 // 4: record = immutable DTO gọn nhẹ
-public record CreateReservationRequest(
+public record ReservationRequest(
         @NotNull 
         Long tableId,                           // 5: Bắt buộc chỉ định bàn
         @NotBlank 
@@ -12,7 +12,7 @@ public record CreateReservationRequest(
         @Size(max = 20) 
         String customerPhone,            // 7: SĐT <= 20 ký tự
         @NotNull 
-        LocalDateTime startTime,                // 8: Thời điểm bắt đầu
+        LocalDateTime startTime,               // 8: Thời điểm bắt đầu
         @NotNull 
         @Min(15) @Max(300) 
         Integer durationMinutes, // 9: 15..300 phút

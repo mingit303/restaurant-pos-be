@@ -14,5 +14,6 @@ public record ReservationResponse(                         // 4
         Integer partySize,                                 // 12
         ReservationStatus status,
         Long createdById,
-        String createdByUsername                          // 13
+        String createdByUsername,
+        LocalDateTime createdAt                         // 13
 ) {}

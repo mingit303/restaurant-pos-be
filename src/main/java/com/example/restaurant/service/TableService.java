@@ -1,39 +1,45 @@
-package com.example.restaurant.service;                           // 1
+package com.example.restaurant.service;
 
-import com.example.restaurant.domain.table.*;                     // 2
-import com.example.restaurant.dto.table.*;                        // 3
-import com.example.restaurant.exception.*;                        // 4
-import com.example.restaurant.repository.table.*;                 // 5
-import org.springframework.stereotype.Service;                    // 6
-import org.springframework.transaction.annotation.Transactional;  // 7
-import java.util.*;                                               // 8
+import com.example.restaurant.domain.table.*;
+import com.example.restaurant.dto.table.*;
+import com.example.restaurant.exception.*;
+import com.example.restaurant.repository.table.*;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.*;
 
-@Service                                                           // 9: Bean service Spring
+@Service
 public class TableService {
 
-    private final RestaurantTableRepository tableRepo;             // 10
+    private final RestaurantTableRepository tableRepo;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public TableService(RestaurantTableRepository tableRepo) {     // 11
+    public TableService(RestaurantTableRepository tableRepo, SimpMessagingTemplate messagingTemplate) {
         this.tableRepo = tableRepo;
+        this.messagingTemplate = messagingTemplate;
     }
 
-    @Transactional(readOnly = true)                                // 12: Chỉ đọc
-    public List<TableResponse> getAll() {                          // 13
-        return tableRepo.findAll().stream()                        // 14
-                .map(t -> new TableResponse(                       // 15
-                        t.getId(), t.getCode(), t.getCapacity(), t.getStatus()
-                ))
-                .toList();                                         // 16
+    @Transactional(readOnly = true)
+    public List<TableResponse> getAll() {
+        return tableRepo.findAll().stream()
+                .map(t -> new TableResponse(t.getId(), t.getCode(), t.getCapacity(), t.getStatus()))
+                .toList();
     }
 
-    @Transactional                                                 // 17: Ghi DB
-    public TableResponse updateStatus(Long id, String status) {    // 18
-        RestaurantTable t = tableRepo.findById(id)                 // 19
+    @Transactional
+    public TableResponse updateStatus(Long id, String status) {
+        RestaurantTable t = tableRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn."));
-        TableStatus newStatus = TableStatus.valueOf(status);       // 20: parse enum (yêu cầu UPPERCASE)
-        t.setStatus(newStatus);                                    // 21
-        return new TableResponse(t.getId(), t.getCode(),           // 22
-                t.getCapacity(), t.getStatus());
+        TableStatus newStatus = TableStatus.valueOf(status);
+        t.setStatus(newStatus);
+
+        TableResponse res = new TableResponse(t.getId(), t.getCode(), t.getCapacity(), t.getStatus());
+
+        // publish realtime
+        messagingTemplate.convertAndSend("/topic/tables", res);
+
+        return res;
     }
 
     @Transactional
@@ -47,20 +53,27 @@ public class TableService {
                 .status(TableStatus.FREE)
                 .build();
         tableRepo.save(t);
-        return new TableResponse(t.getId(), t.getCode(), t.getCapacity(), t.getStatus());
+
+        TableResponse res = new TableResponse(t.getId(), t.getCode(), t.getCapacity(), t.getStatus());
+        messagingTemplate.convertAndSend("/topic/tables", res);
+
+        return res;
     }
 
     @Transactional
     public TableResponse update(Long id, UpdateTableRequest req) {
         RestaurantTable t = tableRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn."));
-        // Nếu đổi sang code mới mà đã tồn tại thì báo lỗi
         if (!t.getCode().equals(req.code()) && tableRepo.existsByCode(req.code())) {
             throw new ConflictException("Mã bàn đã tồn tại.");
         }
         t.setCode(req.code());
         t.setCapacity(req.capacity());
-        return new TableResponse(t.getId(), t.getCode(), t.getCapacity(), t.getStatus());
+
+        TableResponse res = new TableResponse(t.getId(), t.getCode(), t.getCapacity(), t.getStatus());
+        messagingTemplate.convertAndSend("/topic/tables", res);
+
+        return res;
     }
 
     @Transactional
@@ -68,6 +81,8 @@ public class TableService {
         RestaurantTable t = tableRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn."));
         tableRepo.delete(t);
-    }
 
+        // Thông báo xóa
+        messagingTemplate.convertAndSend("/topic/tables/delete", id);
+    }
 }

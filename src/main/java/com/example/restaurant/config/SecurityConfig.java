@@ -28,13 +28,14 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
- 
-    // Đọc origin từ application.yaml
+    private final ObjectMapper objectMapper;
+
     @Value("${app.cors.allowed-origins}")
     private String[] allowedOrigins;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, ObjectMapper objectMapper) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.objectMapper = objectMapper;
     }
 
     @Bean
@@ -44,12 +45,16 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN") // sửa rõ ràng hơn
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
+                .requestMatchers("/cashier/**").hasAuthority("ROLE_CASHIER")
+                .requestMatchers("/waiter/**").hasAuthority("ROLE_WAITER")
+                .requestMatchers("/kitchen/**").hasAuthority("ROLE_KITCHEN")
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex
-                .authenticationEntryPoint(authenticationEntryPoint()) // 401
-                .accessDeniedHandler(accessDeniedHandler()) // 403
+                .authenticationEntryPoint(authenticationEntryPoint())
+                .accessDeniedHandler(accessDeniedHandler())
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -57,20 +62,19 @@ public class SecurityConfig {
     }
 
     @Bean
-    PasswordEncoder passwordEncoder() { 
-        return new BCryptPasswordEncoder(); 
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration cfg)
-            throws Exception {
+    AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
         return cfg.getAuthenticationManager();
     }
 
     @Bean
     CorsConfigurationSource corsConfig() {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(Arrays.asList(allowedOrigins)); // đọc từ yaml
+        cfg.setAllowedOrigins(Arrays.asList(allowedOrigins));
         cfg.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(Arrays.asList("*"));
         cfg.setAllowCredentials(true);
@@ -80,7 +84,6 @@ public class SecurityConfig {
         return source;
     }
 
-    // Xử lý 401 Unauthorized
     @Bean
     AuthenticationEntryPoint authenticationEntryPoint() {
         return (request, response, authException) -> {
@@ -92,7 +95,7 @@ public class SecurityConfig {
             );
             response.setStatus(401);
             response.setContentType("application/json");
-            new ObjectMapper().writeValue(response.getWriter(), error);
+            objectMapper.writeValue(response.getWriter(), error);
         };
     }
 
@@ -107,7 +110,7 @@ public class SecurityConfig {
             );
             response.setStatus(403);
             response.setContentType("application/json");
-            new ObjectMapper().writeValue(response.getWriter(), error);
+            objectMapper.writeValue(response.getWriter(), error);
         };
     }
 }

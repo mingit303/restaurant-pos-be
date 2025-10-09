@@ -1,5 +1,7 @@
 package com.example.restaurant.dto.user;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record UpdateUserStatusRequest(
-    String status
+    @NotBlank String status
 ) {}

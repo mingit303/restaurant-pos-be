@@ -1,34 +1,33 @@
-package com.example.restaurant.controller;                     // 1
+package com.example.restaurant.controller;
 
-import com.example.restaurant.dto.table.*;                     // 2
-import com.example.restaurant.service.*;                       // 3
-import jakarta.validation.Valid;                               // 4
-
+import com.example.restaurant.dto.table.*;
+import com.example.restaurant.service.TableService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize; // 5
-import org.springframework.web.bind.annotation.*;              // 6
-import java.util.*;                                            // 7
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import java.util.*;
 
-@RestController                                                 // 8
-@RequestMapping("/tables")                                      // 9
+@RestController
+@RequestMapping("/tables")
 public class TableController {
 
-    private final TableService tableService;                    // 10
+    private final TableService tableService;
 
-    public TableController(TableService tableService) {         // 11
+    public TableController(TableService tableService) {
         this.tableService = tableService;
     }
 
-    @GetMapping                                                 // 12: GET /tables
-    public List<TableResponse> getAll() {                       // 13
-        return tableService.getAll();                           // 14
+    @GetMapping
+    public List<TableResponse> getAll() {
+        return tableService.getAll();
     }
 
-    @PatchMapping("/{id}/status")                               // 15: PATCH /tables/{id}/status
-    @PreAuthorize("hasAnyAuthority('ROLE_WAITER','ROLE_ADMIN')")              // 16: Admin và waiter được đổi status bàn
-    public TableResponse updateStatus(@PathVariable Long id,    // 17
-                                      @Valid @RequestBody UpdateTableStatusRequest body) { // 18: validate input
-        return tableService.updateStatus(id, body.status());    // 19
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyAuthority('ROLE_WAITER','ROLE_ADMIN')")
+    public TableResponse updateStatus(@PathVariable Long id,
+                                      @Valid @RequestBody UpdateTableStatusRequest body) {
+        return tableService.updateStatus(id, body.status());
     }
 
     @PostMapping
