@@ -30,7 +30,7 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final ObjectMapper objectMapper;
 
-    @Value("${app.cors.allowed-origins}")
+    @Value("${app.cors.allowed-origins}")//allowed-origins: http://localhost:5173,http://localhost:3000
     private String[] allowedOrigins;
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter, ObjectMapper objectMapper) {
@@ -44,12 +44,20 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfig()))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // ✅ Cho phép public các tài nguyên tĩnh
+                .requestMatchers("/images/**", "/uploads/**", "/favicon.ico").permitAll()
+
+                // ✅ Các API public khác
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
+
+                // ✅ Role-based routes
                 .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/cashier/**").hasAuthority("ROLE_CASHIER")
                 .requestMatchers("/waiter/**").hasAuthority("ROLE_WAITER")
                 .requestMatchers("/kitchen/**").hasAuthority("ROLE_KITCHEN")
+
+                // ✅ Mọi request còn lại yêu cầu đăng nhập
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex

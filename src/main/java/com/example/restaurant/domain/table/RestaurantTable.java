@@ -1,5 +1,7 @@
 package com.example.restaurant.domain.table;                // 1
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;                               // 2: JPA annotations
 import lombok.*;                                            // 3: Lombok annotations
 
@@ -9,6 +11,7 @@ import lombok.*;                                            // 3: Lombok annotat
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder// 6: Lombok giảm boilerplate
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class RestaurantTable {                              // 7
 
     @Id                                                     // 8: Primary key

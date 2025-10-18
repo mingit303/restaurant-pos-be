@@ -1,0 +1,490 @@
+package com.example.restaurant.config;                         // 1
+
+import org.springframework.context.annotation.Configuration;   // 2
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity; // 3
+
+@Configuration                                                 // 4
+@EnableMethodSecurity(prePostEnabled = true)                   // 5: Bật @PreAuthorize
+public class MethodSecurityConfig {                            // 6
+}
+
+
+package com.example.restaurant.config;
+
+import com.example.restaurant.dto.ErrorResponse;
+import com.example.restaurant.security.JwtAuthFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.*;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+
+@Configuration
+@EnableMethodSecurity
+public class SecurityConfig {
+
+    private final JwtAuthFilter jwtAuthFilter;
+    private final ObjectMapper objectMapper;
+
+    @Value("${app.cors.allowed-origins}")//allowed-origins: http://localhost:5173,http://localhost:3000
+    private String[] allowedOrigins;
+
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, ObjectMapper objectMapper) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.objectMapper = objectMapper;
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfig()))
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                // ✅ Cho phép public các tài nguyên tĩnh
+                .requestMatchers("/images/**", "/uploads/**", "/favicon.ico").permitAll()
+
+                // ✅ Các API public khác
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/ws/**").permitAll()
+
+                // ✅ Role-based routes
+                .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
+                .requestMatchers("/cashier/**").hasAuthority("ROLE_CASHIER")
+                .requestMatchers("/waiter/**").hasAuthority("ROLE_WAITER")
+                .requestMatchers("/kitchen/**").hasAuthority("ROLE_KITCHEN")
+
+                // ✅ Mọi request còn lại yêu cầu đăng nhập
+                .anyRequest().authenticated()
+            )
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(authenticationEntryPoint())
+                .accessDeniedHandler(accessDeniedHandler())
+            )
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
+        return cfg.getAuthenticationManager();
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfig() {
+        CorsConfiguration cfg = new CorsConfiguration();
+        cfg.setAllowedOrigins(Arrays.asList(allowedOrigins));
+        cfg.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        cfg.setAllowedHeaders(Arrays.asList("*"));
+        cfg.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", cfg);
+        return source;
+    }
+
+    @Bean
+    AuthenticationEntryPoint authenticationEntryPoint() {
+        return (request, response, authException) -> {
+            ErrorResponse error = new ErrorResponse(
+                    401,
+                    "Unauthorized - Please login",
+                    request.getRequestURI(),
+                    LocalDateTime.now()
+            );
+            response.setStatus(401);
+            response.setContentType("application/json");
+            objectMapper.writeValue(response.getWriter(), error);
+        };
+    }
+
+    @Bean
+    AccessDeniedHandler accessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            ErrorResponse error = new ErrorResponse(
+                    403,
+                    "Forbidden - You don't have permission",
+                    request.getRequestURI(),
+                    LocalDateTime.now()
+            );
+            response.setStatus(403);
+            response.setContentType("application/json");
+            objectMapper.writeValue(response.getWriter(), error);
+        };
+    }
+}
+
+package com.example.restaurant.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+    @Override
+    public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
+        // ✅ Cho phép truy cập thư mục uploads/images/
+        String uploadPath = System.getProperty("user.dir") + "/uploads/images/";
+        System.out.println("📂 Serving static files from: " + uploadPath);
+
+        registry.addResourceHandler("/images/**")
+                .addResourceLocations("file:/" + uploadPath.replace("\\", "/"));
+    }
+}
+
+package com.example.restaurant.config;
+
+import com.example.restaurant.security.JwtChannelInterceptor;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
+import org.springframework.messaging.simp.config.ChannelRegistration;
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.web.socket.config.annotation.*;
+
+@Configuration
+@EnableWebSocketMessageBroker
+public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final JwtChannelInterceptor jwtChannelInterceptor;
+
+    public WebSocketSecurityConfig(JwtChannelInterceptor jwtChannelInterceptor) {
+        this.jwtChannelInterceptor = jwtChannelInterceptor;
+    }
+
+    @Override
+    public void configureMessageBroker(@NonNull MessageBrokerRegistry config) {
+        config.enableSimpleBroker("/topic"); 
+        config.setApplicationDestinationPrefixes("/app");
+    }
+
+    @Override
+    public void registerStompEndpoints(@NonNull StompEndpointRegistry registry) {
+        registry.addEndpoint("/ws").setAllowedOriginPatterns("*");
+    }
+
+    @Override
+    public void configureClientInboundChannel(@NonNull ChannelRegistration registration) {
+        registration.interceptors(jwtChannelInterceptor);
+    }
+}
+
+package com.example.restaurant.service;
+
+import com.example.restaurant.domain.user.*;
+import com.example.restaurant.dto.auth.*;
+import com.example.restaurant.repository.user.UserRepository;
+import com.example.restaurant.security.JwtUtils;
+
+import org.springframework.security.authentication.*;
+// import org.springframework.security.core.Authentication;
+// import org.springframework.security.core.userdetails.UserDetails;
+// import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+
+@Service
+public class AuthService {
+
+    private final AuthenticationManager authManager;
+    private final JwtUtils jwtUtils;
+    private final UserRepository userRepo;
+
+    public AuthService(AuthenticationManager authManager,
+                       JwtUtils jwtUtils,
+                       UserRepository userRepo) {
+        this.authManager = authManager;
+        this.jwtUtils = jwtUtils;
+        this.userRepo = userRepo;
+  
+    }
+
+    public AuthResponse login(LoginRequest req) {
+        authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword())
+        );
+
+        // UserDetails userDetails = (UserDetails) auth.getPrincipal();
+        User user = userRepo.findByUsername(req.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 🟡 Nếu là lần đầu (PENDING) → tự kích hoạt
+        if (user.getStatus() == UserStatus.PENDING) {
+            user.setStatus(UserStatus.ACTIVE);
+            userRepo.save(user);
+        } 
+        // 🚫 Nếu tạm khóa / vô hiệu hóa → chặn login
+        else if (user.getStatus() == UserStatus.SUSPENDED) {
+            throw new RuntimeException("Tài khoản đang bị tạm khóa.");
+        } else if (user.getStatus() == UserStatus.DISABLED) {
+            throw new RuntimeException("Tài khoản đã bị vô hiệu hóa.");
+        }
+
+        // ✅ Sinh token
+        String roleName = user.getRole().getName();
+        String accessToken = jwtUtils.generateAccessToken(user.getUsername(), roleName);
+        String refreshToken = jwtUtils.generateRefreshToken(user.getUsername());
+
+        return AuthResponse.builder()
+                .username(user.getUsername())
+                .roleName(roleName)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
+    }
+
+    public TokenRefreshResponse refresh(String refreshToken) {
+        String username = jwtUtils.extractUsername(refreshToken);
+        User user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String roleName = user.getRole().getName();
+
+        String newAccess = jwtUtils.generateAccessToken(username, roleName);
+        return new TokenRefreshResponse(newAccess);
+    }
+}
+
+package com.example.restaurant.security;
+
+import com.example.restaurant.domain.user.User;
+import lombok.Getter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import java.util.Collection;
+import java.util.List;
+
+@Getter
+public class CustomUserDetails implements UserDetails {
+    private final User user;
+
+    public CustomUserDetails(User user) {
+        this.user = user;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority(user.getRole().getName()));
+    }
+
+    @Override
+    public String getPassword() {
+        return user.getPassword();
+    }
+
+    @Override
+    public String getUsername() {
+        return user.getUsername();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() { return true; }
+
+    @Override
+    public boolean isAccountNonLocked() { return true; }
+
+    @Override
+    public boolean isCredentialsNonExpired() { return true; }
+
+    @Override
+    public boolean isEnabled() { return true; }
+}
+
+
+package com.example.restaurant.security;
+
+import com.example.restaurant.domain.user.User;
+import com.example.restaurant.repository.user.UserRepository;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+@Service
+public class CustomUserDetailsService implements UserDetailsService {
+
+    private final UserRepository userRepo;
+
+    public CustomUserDetailsService(UserRepository userRepo) {
+        this.userRepo = userRepo;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return new CustomUserDetails(user);
+    }
+}
+
+
+
+
+package com.example.restaurant.security;
+
+import org.springframework.lang.NonNull;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.stereotype.Component;
+
+@Component
+public class JwtChannelInterceptor implements ChannelInterceptor {
+
+    private final JwtUtils jwtUtils;
+    private final UserDetailsService userDetailsService;
+
+    public JwtChannelInterceptor(JwtUtils jwtUtils, UserDetailsService uds) {
+        this.jwtUtils = jwtUtils;
+        this.userDetailsService = uds;
+    }
+
+    @Override
+    public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+
+        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+            String authHeader = accessor.getFirstNativeHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                String username = jwtUtils.extractUsername(token);
+                if (username != null) {
+                    UserDetails user = userDetailsService.loadUserByUsername(username);
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                    accessor.setUser(authentication);
+                }
+            }
+        }
+        return message;
+    }
+}
+
+
+package com.example.restaurant.security;
+
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+
+import java.util.Date;
+
+@Component
+public class JwtUtils {
+
+    @Value("${app.jwt.secret}")
+    private String jwtSecret;
+
+    @Value("${app.jwt.access-expiration-ms:3600000}") // 1 giờ
+    private long accessExpirationMs;
+
+    @Value("${app.jwt.refresh-expiration-ms:604800000}") // 7 ngày
+    private long refreshExpirationMs;
+
+    @Value("${app.jwt.issuer:SushiRestaurant}")
+    private String issuer;
+
+    private Algorithm algorithm() {
+        return Algorithm.HMAC256(jwtSecret.getBytes());
+    }
+
+    // ✅ Sinh Access Token (chỉ 1 role)
+    public String generateAccessToken(String username, String role) {
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + accessExpirationMs);
+
+        return JWT.create()
+                .withSubject(username)
+                .withIssuer(issuer)
+                .withIssuedAt(now)
+                .withExpiresAt(exp)
+                .withClaim("role", role)
+                .sign(algorithm());
+    }
+
+    // ✅ Sinh Refresh Token (chỉ cần username)
+    public String generateRefreshToken(String username) {
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + refreshExpirationMs);
+
+        return JWT.create()
+                .withSubject(username)
+                .withIssuer(issuer)
+                .withIssuedAt(now)
+                .withExpiresAt(exp)
+                .sign(algorithm());
+    }
+
+    // ✅ Giải mã token
+    private DecodedJWT decodeToken(String token) {
+        return JWT.require(algorithm())
+                .withIssuer(issuer)
+                .build()
+                .verify(token);
+    }
+
+    // ✅ Lấy username
+    public String extractUsername(String token) {
+        try {
+            return decodeToken(token).getSubject();
+        } catch (JWTVerificationException e) {
+            return null;
+        }
+    }
+
+    // ✅ Lấy role
+    public String extractRole(String token) {
+        try {
+            return decodeToken(token).getClaim("role").asString();
+        } catch (JWTVerificationException e) {
+            return null;
+        }
+    }
+
+    // ✅ Kiểm tra token hợp lệ
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        String username = extractUsername(token);
+        return username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+    }
+
+    private boolean isTokenExpired(String token) {
+        try {
+            return decodeToken(token).getExpiresAt().before(new Date());
+        } catch (JWTVerificationException e) {
+            return true;
+        }
+    }
+}
+
+

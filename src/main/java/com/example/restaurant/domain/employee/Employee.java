@@ -8,6 +8,7 @@
     @Entity
     @Table(name = "employees")
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    @ToString(exclude = "user")
     public class Employee {
 
         @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
