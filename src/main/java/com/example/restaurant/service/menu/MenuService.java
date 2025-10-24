@@ -7,11 +7,14 @@ import com.example.restaurant.domain.inventory.RecipeIngredient;
 import com.example.restaurant.dto.menu.request.MenuItemRequest;
 // import com.example.restaurant.dto.inventory.request.RecipeItemRequest;
 import com.example.restaurant.dto.menu.response.MenuItemResponse;
+import com.example.restaurant.mapper.MenuMapper;
 import com.example.restaurant.repository.inventory.IngredientRepository;
 import com.example.restaurant.repository.inventory.RecipeIngredientRepository;
 import com.example.restaurant.repository.inventory.RecipeRepository;
 import org.springframework.data.jpa.domain.Specification;
 import com.example.restaurant.repository.menu.*;
+import com.example.restaurant.ws.MenuEventPublisher;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -27,27 +30,32 @@ public class MenuService {
     private final IngredientRepository ingRepo;
     private final RecipeRepository recipeRepo;
     private final RecipeIngredientRepository riRepo;
-    private static final Path UPLOAD_DIR = Paths.get(System.getProperty("user.dir"), "uploads", "images", "menu");
+    private final MenuEventPublisher menuEvents;
+
+    private static final Path UPLOAD_DIR =
+        Paths.get(System.getProperty("user.dir"), "uploads", "images", "menu");
+
+    // ✅ Danh sách menu
     @Transactional(readOnly = true)
-    public Page<MenuItemResponse> list(int page,int size,String keyword, Long categoryId){
+    public Page<MenuItemResponse> list(int page, int size, String keyword, Long categoryId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
-        Specification<MenuItem> spec = (root, q, cb) -> cb.conjunction();
-        if (keyword!=null && !keyword.isBlank()) {
-            spec = spec.and((root, q, cb) -> cb.like(cb.lower(root.get("name")), "%"+keyword.toLowerCase()+"%"));
+        Specification<MenuItem> spec = (root, query, cb) -> cb.conjunction();
+
+        if (keyword != null && !keyword.isBlank()) {
+            spec = spec.and((root, q, cb) ->
+                cb.like(cb.lower(root.get("name")), "%" + keyword.toLowerCase() + "%"));
         }
-        if (categoryId!=null) {
-            spec = spec.and((root, q, cb) -> cb.equal(root.get("category").get("id"), categoryId));
+        if (categoryId != null) {
+            spec = spec.and((root, q, cb) ->
+                cb.equal(root.get("category").get("id"), categoryId));
         }
-        return menuRepo.findAll(spec, pageable).map(m ->
-            new MenuItemResponse(
-                m.getId(), m.getName(), m.getDescription(), m.getPrice(),
-                m.getImageUrl(), m.getCategory()!=null?m.getCategory().getName():null
-            )
-        );
+
+        return menuRepo.findAll(spec, pageable).map(MenuMapper::toResponse);
     }
 
+    // ✅ Tạo mới
     @Transactional
-    public MenuItemResponse create(MenuItemRequest req){
+    public MenuItemResponse create(MenuItemRequest req) {
         MenuCategory cat = catRepo.findById(req.getCategoryId()).orElseThrow();
         MenuItem m = MenuItem.builder()
                 .name(req.getName())
@@ -57,18 +65,18 @@ public class MenuService {
                 .category(cat)
                 .build();
         menuRepo.save(m);
-
         upsertRecipe(m, req);
-        return toRes(m);
+        menuEvents.menuChanged(m, "CREATED");   
+        return MenuMapper.toResponseWithRecipe(m);
     }
 
+    // ✅ Cập nhật
     @Transactional
-    public MenuItemResponse update(Long id, MenuItemRequest req){
+    public MenuItemResponse update(Long id, MenuItemRequest req) {
         MenuItem m = menuRepo.findById(id).orElseThrow();
         MenuCategory cat = catRepo.findById(req.getCategoryId()).orElseThrow();
 
-        // xóa ảnh cũ nếu thay ảnh
-        if (req.getImageUrl()!=null && !req.getImageUrl().equals(m.getImageUrl()))
+        if (req.getImageUrl() != null && !req.getImageUrl().equals(m.getImageUrl()))
             deleteOldImage(m.getImageUrl());
 
         m.setName(req.getName());
@@ -77,27 +85,28 @@ public class MenuService {
         m.setImageUrl(req.getImageUrl());
         m.setCategory(cat);
         menuRepo.save(m);
-
         upsertRecipe(m, req);
-        return toRes(m);
+        menuEvents.menuChanged(m, "UPDATED");
+        return MenuMapper.toResponseWithRecipe(m);
     }
 
     @Transactional
-    public void delete(Long id){
+    public void delete(Long id) {
         MenuItem m = menuRepo.findById(id).orElseThrow();
         deleteOldImage(m.getImageUrl());
-        // xóa recipe
+
         recipeRepo.findByMenuItem(m).ifPresent(r -> {
             riRepo.deleteAll(r.getIngredients());
             recipeRepo.delete(r);
         });
         menuRepo.delete(m);
+        menuEvents.menuChanged(m, "DELETED");
     }
 
-    // ----- helpers -----
+    // 🔹 helpers
     private void upsertRecipe(MenuItem m, MenuItemRequest req) {
-        Recipe recipe = recipeRepo.findByMenuItem(m).orElseGet(() -> Recipe.builder().menuItem(m).build());
-        // clear cũ
+        Recipe recipe = recipeRepo.findByMenuItem(m)
+                .orElseGet(() -> Recipe.builder().menuItem(m).build());
         riRepo.deleteAll(recipe.getIngredients());
         recipe.getIngredients().clear();
         recipeRepo.save(recipe);
@@ -117,22 +126,8 @@ public class MenuService {
 
     private void deleteOldImage(String imageUrl) {
         if (imageUrl == null || !imageUrl.startsWith("/images/menu/")) return;
-
-        String fileName = Paths.get(imageUrl).getFileName().toString();
-        Path file = UPLOAD_DIR.resolve(fileName);
-        System.out.println("🧭 Deleting: " + file.toAbsolutePath());
-
-        try {
-            Files.deleteIfExists(file);
-        } catch (IOException e) {
-            System.err.println("⚠️ Could not delete: " + e.getMessage());
-        }
+        Path file = UPLOAD_DIR.resolve(Paths.get(imageUrl).getFileName().toString());
+        try { Files.deleteIfExists(file); }
+        catch (IOException e) { System.err.println("⚠️ Could not delete: " + e.getMessage()); }
     }
-
-    private MenuItemResponse toRes(MenuItem m){
-        return new MenuItemResponse(
-            m.getId(), m.getName(), m.getDescription(), m.getPrice(),
-            m.getImageUrl(), m.getCategory()!=null?m.getCategory().getName():null
-        );
-    }   
 }

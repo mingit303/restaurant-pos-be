@@ -30,26 +30,6 @@ public class OrderEventPublisher {
         ws.convertAndSend(topic, payload);
     }
 
-    /** 🔔 Khi Order thay đổi: CREATED / ITEM_ADDED / ITEM_STATE_UPDATED / ORDER_SERVED ... */
-    // public void orderChanged(Long orderId, String action, Object data) {
-    //     System.out.println("📡 orderChanged() called → orderId=" + orderId + ", action=" + action + ", data=" + data);
-    //     send("/topic/orders", Map.of(
-    //             "action", action,
-    //             "orderId", orderId,
-    //             "data", data,
-    //             "timestamp", LocalDateTime.now().toString()
-    //     ));
-    // }    
-    // public void orderChanged(Long orderId, String action, Object data) {
-    //     log.info("📡 orderChanged() called → orderId={}, action={}, data={}", orderId, action, data);
-    //     Map<String, Object> payload = new HashMap<>();
-    //     payload.put("action", action);
-    //     payload.put("orderId", orderId);
-    //     payload.put("data", data); // có thể null mà không crash
-    //     payload.put("timestamp", LocalDateTime.now().toString());
-
-    //     send("/topic/orders", payload);
-    // }
      public void orderChanged(Order order, String action) {
         try {
             OrderResponse dto = OrderMapper.toResponse(order);

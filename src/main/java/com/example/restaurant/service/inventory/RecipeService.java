@@ -4,6 +4,7 @@ package com.example.restaurant.service.inventory;
 import com.example.restaurant.domain.menu.MenuItem;
 import com.example.restaurant.dto.inventory.response.RecipeDetailResponse;
 import com.example.restaurant.dto.menu.response.MenuItemResponse;
+import com.example.restaurant.mapper.MenuMapper;
 import com.example.restaurant.repository.inventory.*;
 import com.example.restaurant.repository.menu.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,17 +36,9 @@ public class RecipeService {
     @Transactional(readOnly = true)
     public MenuItemResponse getRecipeView(Long menuItemId) {
         var menu = menuRepo.findById(menuItemId).orElseThrow();
-        var recipe = recipeRepo.findByMenuItemId(menuItemId).orElseThrow();
-        var lines = recipe.getIngredients().stream()
-                .map(ri -> new MenuItemResponse.RecipeIngredientDto(
-                        ri.getIngredient().getId(),
-                        ri.getIngredient().getName(),
-                        ri.getIngredient().getUnit(),
-                        ri.getQuantity()
-                )).collect(Collectors.toList());
-        return new MenuItemResponse(menu.getId(), menu.getName(), menu.getDescription(), menu.getPrice(),
-                menu.getImageUrl(), menu.getCategory()!=null?menu.getCategory().getName():null, lines);
+        return MenuMapper.toResponseWithRecipe(menu);
     }
+
 
     @Transactional(readOnly = true)
     public RecipeDetailResponse getDetailByMenuItemId(Long menuItemId) {

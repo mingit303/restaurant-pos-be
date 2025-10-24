@@ -78,6 +78,4 @@ public class MenuController {
         
         return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
     }
-
-
 }
