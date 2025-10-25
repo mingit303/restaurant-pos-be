@@ -1,4 +1,4 @@
-package com.example.restaurant.service;
+package com.example.restaurant.service.auth;
 
 import com.example.restaurant.domain.user.*;
 import com.example.restaurant.dto.auth.*;

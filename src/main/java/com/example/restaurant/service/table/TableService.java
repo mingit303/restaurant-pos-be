@@ -1,4 +1,4 @@
-package com.example.restaurant.service;
+package com.example.restaurant.service.table;
 
 import com.example.restaurant.domain.table.*;
 // import com.example.restaurant.dto.table.*;

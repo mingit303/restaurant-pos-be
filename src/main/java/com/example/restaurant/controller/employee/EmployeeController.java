@@ -1,7 +1,7 @@
-package com.example.restaurant.controller;
+package com.example.restaurant.controller.employee;
 
 import com.example.restaurant.dto.employee.*;
-import com.example.restaurant.service.EmployeeService;
+import com.example.restaurant.service.employee.EmployeeService;
 
 import jakarta.validation.Valid;
 

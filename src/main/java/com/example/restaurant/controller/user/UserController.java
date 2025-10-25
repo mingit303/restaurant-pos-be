@@ -1,7 +1,8 @@
-package com.example.restaurant.controller;
+package com.example.restaurant.controller.user;
 
 import com.example.restaurant.dto.user.*;
-import com.example.restaurant.service.UserService;
+import com.example.restaurant.service.user.UserService;
+
 import org.springframework.http.ResponseEntity;
 // import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;

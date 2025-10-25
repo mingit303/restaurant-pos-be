@@ -1,6 +1,7 @@
-package com.example.restaurant.controller; 
-import com.example.restaurant.dto.auth.*; 
-import com.example.restaurant.service.AuthService; 
+package com.example.restaurant.controller.auth; 
+import com.example.restaurant.dto.auth.*;
+import com.example.restaurant.service.auth.AuthService;
+
 import org.springframework.http.ResponseEntity; 
 import org.springframework.web.bind.annotation.*; 
 @RestController @RequestMapping("/auth") 

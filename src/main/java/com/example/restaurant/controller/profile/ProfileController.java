@@ -1,8 +1,8 @@
-package com.example.restaurant.controller;
+package com.example.restaurant.controller.profile;
 
 import com.example.restaurant.dto.profile.*;
 import com.example.restaurant.security.CustomUserDetails;
-import com.example.restaurant.service.ProfileService;
+import com.example.restaurant.service.profile.ProfileService;
 
 import jakarta.validation.Valid;
 

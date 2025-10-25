@@ -1,4 +1,4 @@
-package com.example.restaurant.service;
+package com.example.restaurant.service.profile;
 
 import com.example.restaurant.domain.employee.Employee;
 import com.example.restaurant.domain.user.User;

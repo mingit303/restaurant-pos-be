@@ -1,11 +1,12 @@
-package com.example.restaurant.controller;
+package com.example.restaurant.controller.table;
 
 // import com.example.restaurant.dto.table.*;
 import com.example.restaurant.dto.table.request.CreateTableRequest;
 import com.example.restaurant.dto.table.request.UpdateTableRequest;
 import com.example.restaurant.dto.table.request.UpdateTableStatusRequest;
 import com.example.restaurant.dto.table.response.TableResponse;
-import com.example.restaurant.service.TableService;
+import com.example.restaurant.service.table.TableService;
+
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
