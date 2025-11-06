@@ -27,6 +27,9 @@ public class MenuItem {
     @JoinColumn(name = "category_id")
     private MenuCategory category;
 
+    @Builder.Default
+    private boolean available = true; 
+    
     @OneToOne(mappedBy="menuItem", cascade=CascadeType.ALL, orphanRemoval=true, fetch=FetchType.LAZY)
     private Recipe recipe;
 }

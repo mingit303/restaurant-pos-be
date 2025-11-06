@@ -16,6 +16,7 @@ public class MenuMapper {
             m.getDescription(),
             m.getPrice(),
             m.getImageUrl(),
+            m.isAvailable(),
             m.getCategory() != null
                 ? new MenuCategoryResponse(m.getCategory().getId(), m.getCategory().getName())
                 : null,
@@ -43,6 +44,7 @@ public class MenuMapper {
             m.getDescription(),
             m.getPrice(),
             m.getImageUrl(),
+            m.isAvailable(),
             m.getCategory() != null
                 ? new MenuCategoryResponse(m.getCategory().getId(), m.getCategory().getName())
                 : null,

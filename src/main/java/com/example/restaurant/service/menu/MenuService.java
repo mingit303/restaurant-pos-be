@@ -130,4 +130,14 @@ public class MenuService {
         try { Files.deleteIfExists(file); }
         catch (IOException e) { System.err.println("⚠️ Could not delete: " + e.getMessage()); }
     }
+
+    @Transactional
+    public MenuItemResponse toggleAvailable(Long id) {
+        MenuItem item = menuRepo.findById(id).orElseThrow();
+        item.setAvailable(!item.isAvailable());
+        menuRepo.save(item);
+
+        menuEvents.menuChanged(item, "UPDATED"); // realtime cho FE
+        return MenuMapper.toResponse(item);
+    }
 }

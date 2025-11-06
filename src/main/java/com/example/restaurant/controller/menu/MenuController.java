@@ -78,4 +78,9 @@ public class MenuController {
         
         return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
     }
+
+    @PatchMapping("/items/{id}/toggle")
+    public ResponseEntity<MenuItemResponse> toggleAvailable(@PathVariable Long id) {
+        return ResponseEntity.ok(menu.toggleAvailable(id));
+    }
 }

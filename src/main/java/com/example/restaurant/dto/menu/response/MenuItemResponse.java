@@ -4,8 +4,13 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public class MenuItemResponse {
-    private Long id; private String name; private String description;
-    private BigDecimal price; private String imageUrl; private MenuCategoryResponse category;
+    private Long id; 
+    private String name;
+    private String description;
+    private BigDecimal price; 
+    private String imageUrl;
+    private boolean available;
+    private MenuCategoryResponse category;
     private List<RecipeIngredientDto> recipe;
 
     public static class RecipeIngredientDto {
@@ -21,16 +26,24 @@ public class MenuItemResponse {
     }
 
     public MenuItemResponse(){}
-    public MenuItemResponse(Long id,String name,String desc,BigDecimal price,String img,MenuCategoryResponse  cat,List<RecipeIngredientDto> r){
-        this.id=id;this.name=name;this.description=desc;this.price=price;this.imageUrl=img;this.category=cat;this.recipe=r;
+    public MenuItemResponse(Long id,String name,String desc,BigDecimal price,String img, boolean available,MenuCategoryResponse  cat,List<RecipeIngredientDto> r){
+        this.id=id;
+        this.name=name;
+        this.description=desc;
+        this.price=price;
+        this.imageUrl=img;
+        this.available = available;
+        this.category=cat;
+        this.recipe=r;
     }
     public MenuItemResponse(Long id, String name, String desc,
-                        BigDecimal price, String img, MenuCategoryResponse cat) {
+                        BigDecimal price, String img, boolean available, MenuCategoryResponse cat) {
         this.id = id;
         this.name = name;
         this.description = desc;
         this.price = price;
         this.imageUrl = img;
+        this.available = available;
         this.category = cat;
         this.recipe = null;
     }
@@ -42,4 +55,10 @@ public class MenuItemResponse {
     public String getImageUrl(){return imageUrl;} public void setImageUrl(String v){this.imageUrl=v;}
     public MenuCategoryResponse getCategory(){return category;} public void setCategory(MenuCategoryResponse v){this.category=v;}
     public List<RecipeIngredientDto> getRecipe(){return recipe;} public void setRecipe(List<RecipeIngredientDto> v){this.recipe=v;}
+    public boolean isAvailable() {
+        return available;
+    }
+    public void setAvailable(boolean available) {
+        this.available = available;
+    }
 }

@@ -446,7 +446,7 @@ public class InvoiceService {
             doc.add(table);
             doc.add(new Paragraph("--------------------------------------------------", smallFont));
 
-            // ==== 💰 TOTAL ====
+            // ==== TOTAL ====
             BigDecimal subtotal = inv.getSubtotal();
             BigDecimal discount = inv.getDiscount() != null ? inv.getDiscount() : BigDecimal.ZERO;
             BigDecimal total = inv.getTotal();
@@ -469,7 +469,7 @@ public class InvoiceService {
 
             doc.add(new Paragraph("--------------------------------------------------", smallFont));
 
-            // ==== ❤️ FOOTER ====
+            // ==== FOOTER ====
             Paragraph thanks = new Paragraph("Cảm ơn quý khách và hẹn gặp lại! 🍣", normalFont);
             thanks.setAlignment(Paragraph.ALIGN_CENTER);
             doc.add(thanks);
