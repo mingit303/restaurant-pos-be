@@ -1,4 +1,4 @@
-package com.example.restaurant.dto.employee;
+package com.example.restaurant.dto.employee.Response;
 
 import com.example.restaurant.domain.employee.Employee;
 import com.example.restaurant.domain.user.User;

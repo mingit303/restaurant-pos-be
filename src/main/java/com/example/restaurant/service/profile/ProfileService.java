@@ -2,7 +2,9 @@ package com.example.restaurant.service.profile;
 
 import com.example.restaurant.domain.employee.Employee;
 import com.example.restaurant.domain.user.User;
-import com.example.restaurant.dto.profile.*;
+import com.example.restaurant.dto.profile.Request.ChangePasswordRequest;
+import com.example.restaurant.dto.profile.Request.UpdateProfileRequest;
+import com.example.restaurant.dto.profile.Response.ProfileResponse;
 import com.example.restaurant.exception.BadRequestException;
 import com.example.restaurant.repository.employee.EmployeeRepository;
 import com.example.restaurant.repository.user.UserRepository;

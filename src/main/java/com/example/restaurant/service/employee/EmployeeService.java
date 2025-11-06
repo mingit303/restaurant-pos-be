@@ -2,7 +2,8 @@ package com.example.restaurant.service.employee;
 
 import com.example.restaurant.domain.employee.Employee;
 import com.example.restaurant.domain.user.*;
-import com.example.restaurant.dto.employee.*;
+import com.example.restaurant.dto.employee.Request.EmployeeRequest;
+import com.example.restaurant.dto.employee.Response.EmployeeResponse;
 import com.example.restaurant.repository.employee.EmployeeRepository;
 import com.example.restaurant.repository.user.*;
 

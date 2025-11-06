@@ -1,4 +1,4 @@
-package com.example.restaurant.dto.user;
+package com.example.restaurant.dto.user.Response;
 
 import com.example.restaurant.domain.user.*;
 import lombok.*;

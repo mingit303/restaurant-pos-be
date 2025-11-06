@@ -1,4 +1,4 @@
-package com.example.restaurant.dto.profile;
+package com.example.restaurant.dto.profile.Response;
 
 import lombok.*;
 import java.time.LocalDate;

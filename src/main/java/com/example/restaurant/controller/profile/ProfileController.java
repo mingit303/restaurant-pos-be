@@ -1,6 +1,8 @@
 package com.example.restaurant.controller.profile;
 
-import com.example.restaurant.dto.profile.*;
+import com.example.restaurant.dto.profile.Request.ChangePasswordRequest;
+import com.example.restaurant.dto.profile.Request.UpdateProfileRequest;
+import com.example.restaurant.dto.profile.Response.ProfileResponse;
 import com.example.restaurant.security.CustomUserDetails;
 import com.example.restaurant.service.profile.ProfileService;
 

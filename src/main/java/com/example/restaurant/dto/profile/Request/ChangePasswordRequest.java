@@ -1,4 +1,4 @@
-package com.example.restaurant.dto.profile;
+package com.example.restaurant.dto.profile.Request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
