@@ -2,6 +2,7 @@ package com.example.restaurant.service.auth;
 
 import com.example.restaurant.domain.user.*;
 import com.example.restaurant.dto.auth.*;
+import com.example.restaurant.exception.BadRequestException;
 import com.example.restaurant.repository.user.UserRepository;
 import com.example.restaurant.security.JwtUtils;
 
@@ -29,13 +30,18 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest req) {
-        authManager.authenticate(
+        try {
+            authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword())
-        );
+            );
+        } catch (BadCredentialsException ex) {
+            // 🔥 Trả lỗi 401 (sai mật khẩu)
+            throw new BadRequestException("Sai tên đăng nhập hoặc mật khẩu!");
+        }
 
         // UserDetails userDetails = (UserDetails) auth.getPrincipal();
         User user = userRepo.findByUsername(req.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản người dùng"));
 
         // 🟡 Nếu là lần đầu (PENDING) → tự kích hoạt
         if (user.getStatus() == UserStatus.PENDING) {
@@ -65,7 +71,7 @@ public class AuthService {
     public TokenRefreshResponse refresh(String refreshToken) {
         String username = jwtUtils.extractUsername(refreshToken);
         User user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
         String roleName = user.getRole().getName();
 
