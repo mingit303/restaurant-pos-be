@@ -13,7 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
-@RestController @RequestMapping("/api/tables")
+@RestController @RequestMapping("/tables")
 public class TableController {
 
     private final TableService tableService;

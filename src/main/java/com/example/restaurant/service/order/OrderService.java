@@ -42,38 +42,61 @@ public class OrderService {
     private final TableEventPublisher tableEvents;
     private final RecipeService recipeService;
 
+
     @Transactional
-    public OrderResponse createOrder(CreateOrderRequest req) {
-        RestaurantTable table = tableRepo.findByIdForUpdate(req.getTableId())
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn."));
+public OrderResponse createOrder(CreateOrderRequest req) {
+    RestaurantTable table = tableRepo.findByIdForUpdate(req.getTableId())
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn."));
 
-        boolean hasActive = orderRepo.existsByTableIdAndStatusIn(
-                table.getId(), List.of(OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.SERVED));
-        if (hasActive) throw new BadRequestException("Bàn đã có order đang phục vụ.");
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
-        Employee waiter = employeeRepo.findByUserUsername(username)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên phục vụ."));
-
-        Order order = Order.builder().table(table).waiter(waiter).build();
-
-        table.setStatus(TableStatus.OCCUPIED);
+    // ✅ Nếu bàn OCCUPIED nhưng không còn order hoạt động, tự reset lại
+    boolean hasActive = orderRepo.existsByTableIdAndStatusIn(
+            table.getId(), List.of(OrderStatus.PENDING, OrderStatus.CONFIRMED)
+    );
+    if (!hasActive && table.getStatus() == TableStatus.OCCUPIED) {
+        table.setStatus(TableStatus.FREE);
         tableRepo.save(table);
-        orderRepo.save(order);
-
-        tableEvents.tableChanged(table.getId(), table.getCode(), table.getCapacity(), table.getStatus().name(), "STATUS_CHANGED");
-        orderEvents.orderChanged(order, "CREATED");
-
-        return OrderMapper.toResponse(order);
     }
+
+    // 🧱 Nếu sau khi kiểm tra mà vẫn có order active -> chặn
+    if (hasActive)
+        throw new BadRequestException("Bàn đã có order đang phục vụ.");
+
+    // 🧾 Lấy nhân viên phục vụ
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    String username = auth.getName();
+    Employee waiter = employeeRepo.findByUserUsername(username)
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên phục vụ."));
+
+    // ✅ Tạo order mới
+    Order order = Order.builder()
+            .table(table)
+            .waiter(waiter)
+            .build();
+
+    table.setStatus(TableStatus.OCCUPIED);
+    tableRepo.save(table);
+    orderRepo.save(order);
+
+    tableEvents.tableChanged(table.getId(), table.getCode(), table.getCapacity(),
+            table.getStatus().name(), "STATUS_CHANGED");
+    orderEvents.orderChanged(order, "CREATED");
+
+    return OrderMapper.toResponse(order);
+}
+
 
     @Transactional
     public OrderResponse addItem(Long orderId, AddItemRequest req) {
         Order order = orderRepo.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy order."));
-        if (order.getStatus() == OrderStatus.CANCELLED || order.getStatus() == OrderStatus.PAID)
-            throw new BadRequestException("Không thể thêm món vào đơn đã hủy/thanh toán.");
+
+        OrderStatus currentStatus = order.getStatus();
+
+        if (currentStatus == OrderStatus.CANCELLED
+                || currentStatus == OrderStatus.PAID
+                || currentStatus == OrderStatus.SERVED) {
+            throw new BadRequestException("Không thể thêm món vào đơn đã phục vụ hoặc đã thanh toán/hủy.");
+        }
 
         MenuItem menu = menuRepo.findById(req.getMenuItemId())
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy món ăn."));
@@ -94,6 +117,7 @@ public class OrderService {
         orderEvents.orderItemChanged(item, "ITEM_ADDED");
         return OrderMapper.toResponse(order);
     }
+
 
     @Transactional(readOnly = true)
     public Page<OrderResponse> search(Integer page, Integer size, String tableCode, String waiterName,
@@ -142,16 +166,28 @@ public class OrderService {
         orderEvents.orderItemChanged(item, "ITEM_STATE_UPDATED");
     }
 
-    @Transactional
-    public void markItemServed(Long itemId) {
-        OrderItem item = itemRepo.findById(itemId).orElseThrow(() -> new NotFoundException("Không tìm thấy món."));
-        if (item.getState() != OrderItemState.DONE)
-            throw new BadRequestException("Món chưa nấu xong, không thể xác nhận phục vụ.");
-        item.setState(OrderItemState.SERVED);
-        itemRepo.save(item);
-        checkAndUpdateOrderServed(item.getOrder());
-        orderEvents.orderItemChanged(item, "ITEM_SERVED");
+@Transactional
+public OrderResponse markItemServed(Long itemId) {
+    OrderItem item = itemRepo.findById(itemId)
+        .orElseThrow(() -> new NotFoundException("Không tìm thấy món."));
+
+    // ⚙️ Cho phép SERVED nếu món đang DONE hoặc đã SERVED
+    if (item.getState() != OrderItemState.DONE && item.getState() != OrderItemState.SERVED) {
+        throw new BadRequestException("Món chưa nấu xong, không thể xác nhận phục vụ.");
     }
+
+    item.setState(OrderItemState.SERVED);
+    itemRepo.save(item);
+
+    // Kiểm tra toàn bộ món → nếu tất cả SERVED thì order cũng thành SERVED
+    checkAndUpdateOrderServed(item.getOrder());
+
+    orderEvents.orderItemChanged(item, "ITEM_SERVED");
+
+    // ✅ Trả về OrderResponse để FE cập nhật ngay
+    return OrderMapper.toResponse(item.getOrder());
+}
+
 
     @Transactional
     public void cancelOrder(Long orderId) {

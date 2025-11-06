@@ -50,13 +50,20 @@ public class SecurityConfig {
                 // ✅ Các API public khác
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
+                .requestMatchers(
+                "/vnpay/**", 
+                "/invoices/vnpay-return",
+                "/invoices/vnpay-ipn",
+                "/customers/**"
+                ).permitAll()
 
                 // ✅ Role-based routes
                 .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/cashier/**").hasAuthority("ROLE_CASHIER")
-                .requestMatchers("/waiter/**").hasAuthority("ROLE_WAITER")
-                .requestMatchers("/kitchen/**").hasAuthority("ROLE_KITCHEN")
-
+                .requestMatchers("/cashier/**").hasAnyAuthority("ROLE_CASHIER", "ROLE_ADMIN")
+                .requestMatchers("/waiter/**").hasAnyAuthority("ROLE_WAITER", "ROLE_ADMIN")
+                .requestMatchers("/kitchen/**").hasAnyAuthority("ROLE_KITCHEN", "ROLE_ADMIN")
+                .requestMatchers("/invoices/**").hasAnyAuthority("ROLE_CASHIER", "ROLE_WAITER", "ROLE_ADMIN")
+                .requestMatchers("/customers/**").hasAnyAuthority("ROLE_WAITER", "ROLE_ADMIN")
                 // ✅ Mọi request còn lại yêu cầu đăng nhập
                 .anyRequest().authenticated()
             )

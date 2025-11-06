@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 
-@RestController @RequestMapping("/api/orders") @RequiredArgsConstructor
+@RestController @RequestMapping("/orders") @RequiredArgsConstructor
 public class OrderController {
     private final OrderService service;
 
@@ -61,11 +61,11 @@ public class OrderController {
         return ResponseEntity.ok().build();
     }
 
-    @PatchMapping("/items/{id}/served")
-    public ResponseEntity<Void> markServed(@PathVariable Long id){
-        service.markItemServed(id);
-        return ResponseEntity.ok().build();
-    }
+@PatchMapping("/items/{id}/served")
+public ResponseEntity<OrderResponse> markServed(@PathVariable Long id) {
+    return ResponseEntity.ok(service.markItemServed(id));
+}
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> cancel(@PathVariable Long id) {

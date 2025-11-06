@@ -43,8 +43,6 @@ public class EmployeeController {
         return ResponseEntity.ok(service.searchEmployees(keyword, gender, role, page, size));
     }
 
-
-
     // ADMIN: thêm nhân viên (kèm tài khoản)
     @PostMapping
     public ResponseEntity<EmployeeResponse> create(@Valid @RequestBody EmployeeRequest req) {

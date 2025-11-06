@@ -10,7 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RestController @RequestMapping("/api/ingredients") @RequiredArgsConstructor
+@RestController @RequestMapping("/ingredients") @RequiredArgsConstructor
 public class IngredientController {
     private final IngredientService svc;
 

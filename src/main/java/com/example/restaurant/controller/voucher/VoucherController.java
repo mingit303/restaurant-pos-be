@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 
 @RestController
-@RequestMapping("/api/vouchers")
+@RequestMapping("/vouchers")
 @RequiredArgsConstructor
 public class VoucherController {
     private final VoucherService service;
