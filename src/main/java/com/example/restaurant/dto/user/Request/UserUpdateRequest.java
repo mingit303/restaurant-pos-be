@@ -1,4 +1,4 @@
-package com.example.restaurant.dto.user;
+package com.example.restaurant.dto.user.Request;
 
 import lombok.Data;
 

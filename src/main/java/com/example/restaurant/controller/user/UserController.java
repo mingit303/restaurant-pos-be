@@ -1,7 +1,7 @@
 package com.example.restaurant.controller.user;
 
-import com.example.restaurant.dto.user.*;
 import com.example.restaurant.dto.user.Request.ResetPasswordRequest;
+import com.example.restaurant.dto.user.Request.UserUpdateRequest;
 import com.example.restaurant.dto.user.Response.UserResponse;
 import com.example.restaurant.service.user.UserService;
 

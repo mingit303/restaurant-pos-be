@@ -9,6 +9,11 @@ import com.example.restaurant.exception.*;
 import com.example.restaurant.repository.table.RestaurantTableRepository;
 import com.example.restaurant.ws.TableEventPublisher;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -90,4 +95,44 @@ public class TableService {
         tableRepo.delete(t);
         tableEvents.tableDeleted(t.getId(), t.getCode());
     }
+
+
+    @Transactional(readOnly = true)
+    public Page<TableResponse> list(int page, int size, String keyword, String status) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("code").ascending());
+
+        Page<RestaurantTable> p;
+
+        // Nếu có trạng thái
+        if (status != null && !status.isBlank()) {
+            TableStatus tableStatus = TableStatus.valueOf(status);
+
+            // Nếu keyword là số => lọc capacity >= số đó
+            if (keyword != null && keyword.matches("\\d+")) {
+                int capacity = Integer.parseInt(keyword);
+                p = tableRepo.findByStatusAndCapacityGreaterThanEqual(tableStatus, capacity, pageable);
+            }
+            // Nếu keyword là chữ => lọc code
+            else if (keyword != null && !keyword.isBlank()) {
+                p = tableRepo.findByStatusAndCodeContainingIgnoreCase(tableStatus, keyword, pageable);
+            } else {
+                p = tableRepo.findByStatus(tableStatus, pageable);
+            }
+        }
+        // Không có filter trạng thái
+        else {
+            if (keyword != null && keyword.matches("\\d+")) {
+                int capacity = Integer.parseInt(keyword);
+                p = tableRepo.findByCapacityGreaterThanEqual(capacity, pageable);
+            } else if (keyword != null && !keyword.isBlank()) {
+                p = tableRepo.findByCodeContainingIgnoreCase(keyword, pageable);
+            } else {
+                p = tableRepo.findAll(pageable);
+            }
+        }
+
+        return p.map(t -> new TableResponse(t.getId(), t.getCode(), t.getCapacity(), t.getStatus()));
+    }
+
+
 }

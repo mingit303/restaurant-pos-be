@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 @Getter @Setter
 @Builder
 @NoArgsConstructor @AllArgsConstructor
+@Table(name = "customers")
 public class Customer {
 
     @Id
@@ -23,9 +24,13 @@ public class Customer {
     private String phone;
 
     @Builder.Default
+    @Column(name = "total_points") 
     private Integer totalPoints = 0;
 
+    @Column(name = "created_at")   
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")   
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "customer")
