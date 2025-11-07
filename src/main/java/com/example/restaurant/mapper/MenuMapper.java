@@ -32,8 +32,11 @@ public class MenuMapper {
                     new MenuItemResponse.RecipeIngredientDto(
                         ri.getIngredient().getId(),
                         ri.getIngredient().getName(),
-                        ri.getIngredient().getUnit(),
-                        ri.getQuantity()
+                        ri.getIngredient().getStockQuantity(),
+                        ri.getIngredient().getBaseUnit(),
+                        ri.getIngredient().getUseUnit(),
+                        ri.getIngredient().getConvertRate(),
+                        ri.getIngredient().getThreshold()
                     )
                 ).collect(Collectors.toList())
                 : null;

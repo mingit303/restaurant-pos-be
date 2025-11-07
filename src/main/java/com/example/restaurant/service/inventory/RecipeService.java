@@ -26,8 +26,14 @@ public class RecipeService {
         var recipe = recipeRepo.findByMenuItemId(menuItem.getId()).orElseThrow();
         for (var ri : recipe.getIngredients()) {
             var ing = ri.getIngredient();
-            double newQty = ing.getStockQuantity() - ri.getQuantity();
-            if (newQty < 0) throw new IllegalStateException("Không đủ " + ing.getName());
+
+            // 🔁 Quy đổi sang đơn vị nhập
+            double usedInBase = ri.getQuantity() / ing.getConvertRate();
+            double newQty = ing.getStockQuantity() - usedInBase;
+
+            if (newQty < 0)
+                throw new IllegalStateException("Không đủ tồn kho cho " + ing.getName());
+
             ing.setStockQuantity(newQty);
             ingredientRepo.save(ing);
         }
@@ -44,12 +50,12 @@ public class RecipeService {
     public RecipeDetailResponse getDetailByMenuItemId(Long menuItemId) {
         var recipe = recipeRepo.findByMenuItemId(menuItemId).orElseThrow();
         var items = recipe.getIngredients().stream().map(ri ->
-            new RecipeDetailResponse.IngredientView(
-                ri.getIngredient().getId(),
-                ri.getIngredient().getName(),
-                ri.getIngredient().getUnit(),
-                ri.getQuantity()
-            )
+                new RecipeDetailResponse.IngredientView(
+                        ri.getIngredient().getId(),
+                        ri.getIngredient().getName(),
+                        ri.getIngredient().getUseUnit(),
+                        ri.getQuantity()
+                )
         ).collect(Collectors.toList());
         return new RecipeDetailResponse(menuItemId, recipe.getMenuItem().getName(), items);
     }

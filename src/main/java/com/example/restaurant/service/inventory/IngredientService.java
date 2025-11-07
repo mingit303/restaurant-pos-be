@@ -18,31 +18,57 @@ public class IngredientService {
     @Transactional(readOnly = true)
     public Page<IngredientResponse> list(int page, int size, String keyword) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
-        Page<Ingredient> p = (keyword==null || keyword.isBlank())
+        Page<Ingredient> p = (keyword == null || keyword.isBlank())
                 ? ingredientRepo.findAll(pageable)
                 : ingredientRepo.findByNameContainingIgnoreCase(keyword, pageable);
-        return p.map(i -> new IngredientResponse(i.getId(), i.getName(), i.getUnit(), i.getStockQuantity()));
+
+        return p.map(i -> new IngredientResponse(
+                i.getId(),
+                i.getName(),
+                i.getStockQuantity(),
+                i.getBaseUnit(),
+                i.getUseUnit(),
+                i.getConvertRate(),
+                i.getThreshold()
+        ));
     }
 
     @Transactional
     public IngredientResponse create(IngredientRequest req) {
         Ingredient i = Ingredient.builder()
                 .name(req.getName())
-                .unit(req.getUnit())
-                .stockQuantity(req.getStockQuantity() != null ? req.getStockQuantity() : 0.0)
+                .baseUnit(req.getBaseUnit())
+                .stockQuantity(req.getStockQuantity())
+                .useUnit(req.getUseUnit())
+                .convertRate(req.getConvertRate())
+                .threshold(req.getThreshold())
                 .build();
         ingredientRepo.save(i);
-        return new IngredientResponse(i.getId(), i.getName(), i.getUnit(), i.getStockQuantity());
+        return new IngredientResponse(
+                i.getId(), i.getName(),
+                i.getStockQuantity(), i.getBaseUnit(), i.getUseUnit(),
+                i.getConvertRate(), i.getThreshold()
+        );
     }
 
     @Transactional
     public IngredientResponse update(Long id, IngredientRequest req) {
-        Ingredient i = ingredientRepo.findById(id).orElseThrow(() -> new NotFoundException("Ingredient not found"));
+        Ingredient i = ingredientRepo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Ingredient not found"));
+
         i.setName(req.getName());
-        i.setUnit(req.getUnit());
-        if (req.getStockQuantity()!=null) i.setStockQuantity(req.getStockQuantity());
+        i.setBaseUnit(req.getBaseUnit());
+        i.setStockQuantity(req.getStockQuantity());
+        i.setUseUnit(req.getUseUnit());
+        i.setConvertRate(req.getConvertRate());
+        i.setThreshold(req.getThreshold());
+
         ingredientRepo.save(i);
-        return new IngredientResponse(i.getId(), i.getName(), i.getUnit(), i.getStockQuantity());
+        return new IngredientResponse(
+                i.getId(), i.getName(), 
+                i.getStockQuantity(), i.getBaseUnit(), i.getUseUnit(),
+                i.getConvertRate(), i.getThreshold()
+        );
     }
 
     @Transactional

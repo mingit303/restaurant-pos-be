@@ -14,13 +14,14 @@ public class Ingredient {
     @Column(nullable = false, unique=true) 
     private String name;
 
-    private String unit;
-
     @Builder.Default 
     private Double stockQuantity = 0.0;
-    // @Builder.Default private double threshold = 0;
 
-    // @OneToMany(mappedBy = "ingredient", cascade = CascadeType.ALL)
-    // @Builder.Default
-    // private List<RecipeIngredient> recipeIngredients = new ArrayList<>();
+    private String baseUnit;
+
+    private String useUnit;
+
+    private double convertRate;
+
+    private double threshold;
 }
