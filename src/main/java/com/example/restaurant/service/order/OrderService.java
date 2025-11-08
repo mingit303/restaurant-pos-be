@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static com.example.restaurant.repository.order.OrderSpecifications.*;
 
@@ -44,45 +45,45 @@ public class OrderService {
 
 
     @Transactional
-public OrderResponse createOrder(CreateOrderRequest req) {
-    RestaurantTable table = tableRepo.findByIdForUpdate(req.getTableId())
-            .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn."));
+    public OrderResponse createOrder(CreateOrderRequest req) {
+        RestaurantTable table = tableRepo.findByIdForUpdate(req.getTableId())
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn."));
 
-    // ✅ Nếu bàn OCCUPIED nhưng không còn order hoạt động, tự reset lại
-    boolean hasActive = orderRepo.existsByTableIdAndStatusIn(
-            table.getId(), List.of(OrderStatus.PENDING, OrderStatus.CONFIRMED)
-    );
-    if (!hasActive && table.getStatus() == TableStatus.OCCUPIED) {
-        table.setStatus(TableStatus.FREE);
+        // ✅ Nếu bàn OCCUPIED nhưng không còn order hoạt động, tự reset lại
+        boolean hasActive = orderRepo.existsByTableIdAndStatusIn(
+                table.getId(), List.of(OrderStatus.PENDING, OrderStatus.CONFIRMED)
+        );
+        if (!hasActive && table.getStatus() == TableStatus.OCCUPIED) {
+            table.setStatus(TableStatus.FREE);
+            tableRepo.save(table);
+        }
+
+        // 🧱 Nếu sau khi kiểm tra mà vẫn có order active -> chặn
+        if (hasActive)
+            throw new BadRequestException("Bàn đã có order đang phục vụ.");
+
+        // 🧾 Lấy nhân viên phục vụ
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Employee waiter = employeeRepo.findByUserUsername(username)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên phục vụ."));
+
+        // ✅ Tạo order mới
+        Order order = Order.builder()
+                .table(table)
+                .waiter(waiter)
+                .build();
+
+        table.setStatus(TableStatus.OCCUPIED);
         tableRepo.save(table);
+        orderRepo.save(order);
+
+        tableEvents.tableChanged(table.getId(), table.getCode(), table.getCapacity(),
+                table.getStatus().name(), "STATUS_CHANGED");
+        orderEvents.orderChanged(order, "CREATED");
+
+        return OrderMapper.toResponse(order);
     }
-
-    // 🧱 Nếu sau khi kiểm tra mà vẫn có order active -> chặn
-    if (hasActive)
-        throw new BadRequestException("Bàn đã có order đang phục vụ.");
-
-    // 🧾 Lấy nhân viên phục vụ
-    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    String username = auth.getName();
-    Employee waiter = employeeRepo.findByUserUsername(username)
-            .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên phục vụ."));
-
-    // ✅ Tạo order mới
-    Order order = Order.builder()
-            .table(table)
-            .waiter(waiter)
-            .build();
-
-    table.setStatus(TableStatus.OCCUPIED);
-    tableRepo.save(table);
-    orderRepo.save(order);
-
-    tableEvents.tableChanged(table.getId(), table.getCode(), table.getCapacity(),
-            table.getStatus().name(), "STATUS_CHANGED");
-    orderEvents.orderChanged(order, "CREATED");
-
-    return OrderMapper.toResponse(order);
-}
 
 
     @Transactional
@@ -90,33 +91,56 @@ public OrderResponse createOrder(CreateOrderRequest req) {
         Order order = orderRepo.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy order."));
 
-        OrderStatus currentStatus = order.getStatus();
-
-        if (currentStatus == OrderStatus.CANCELLED
-                || currentStatus == OrderStatus.PAID
-                || currentStatus == OrderStatus.SERVED) {
-            throw new BadRequestException("Không thể thêm món vào đơn đã phục vụ hoặc đã thanh toán/hủy.");
+        if (List.of(OrderStatus.CANCELLED, OrderStatus.PAID).contains(order.getStatus())) {
+            throw new BadRequestException("Không thể thêm món vào đơn đã thanh toán hoặc hủy.");
         }
 
         MenuItem menu = menuRepo.findById(req.getMenuItemId())
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy món ăn."));
-        BigDecimal line = menu.getPrice().multiply(BigDecimal.valueOf(req.getQuantity()));
 
-        OrderItem item = OrderItem.builder()
-                .order(order).menuItem(menu)
-                .unitPrice(menu.getPrice())
-                .quantity(req.getQuantity())
-                .lineTotal(line)
-                .note(req.getNote())
-                .build();
+        String note = (req.getNote() == null || req.getNote().isBlank()) ? "" : req.getNote().trim();
 
-        order.getItems().add(item);
+        // 🔹 Món waiter thêm luôn ở trạng thái PENDING
+        OrderItemState newItemState = OrderItemState.PENDING;
+
+        // ✅ Tìm món trùng (cùng món, cùng note, cùng state)
+        Optional<OrderItem> existingOpt = order.getItems().stream()
+            .filter(i ->
+                i.getMenuItem().getId().equals(menu.getId()) &&
+                ((i.getNote() == null ? "" : i.getNote().trim()).equalsIgnoreCase(note)) &&
+                i.getState() == newItemState
+            )
+            .findFirst();
+
+        if (existingOpt.isPresent()) {
+            // ➕ Cộng dồn
+            OrderItem existing = existingOpt.get();
+            int newQty = existing.getQuantity() + req.getQuantity();
+            existing.setQuantity(newQty);
+            existing.setLineTotal(menu.getPrice().multiply(BigDecimal.valueOf(newQty)));
+            itemRepo.save(existing);
+        } else {
+            // 🆕 Tạo món mới (mặc định PENDING)
+            OrderItem item = OrderItem.builder()
+                    .order(order)
+                    .menuItem(menu)
+                    .unitPrice(menu.getPrice())
+                    .quantity(req.getQuantity())
+                    .lineTotal(menu.getPrice().multiply(BigDecimal.valueOf(req.getQuantity())))
+                    .note(note)
+                    .state(newItemState) // 👈 quan trọng
+                    .build();
+            order.getItems().add(item);
+            itemRepo.save(item);
+        }
+
         recalcTotals(order);
         orderRepo.save(order);
+        orderEvents.orderChanged(order, "ITEM_ADDED");
 
-        orderEvents.orderItemChanged(item, "ITEM_ADDED");
         return OrderMapper.toResponse(order);
     }
+
 
 
     @Transactional(readOnly = true)
