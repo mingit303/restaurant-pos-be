@@ -61,10 +61,10 @@ public class OrderController {
         return ResponseEntity.ok().build();
     }
 
-@PatchMapping("/items/{id}/served")
-public ResponseEntity<OrderResponse> markServed(@PathVariable Long id) {
-    return ResponseEntity.ok(service.markItemServed(id));
-}
+    @PatchMapping("/items/{id}/served")
+    public ResponseEntity<OrderResponse> markServed(@PathVariable Long id) {
+        return ResponseEntity.ok(service.markItemServed(id));
+    }
 
 
     @DeleteMapping("/{id}")
@@ -72,4 +72,12 @@ public ResponseEntity<OrderResponse> markServed(@PathVariable Long id) {
         service.cancelOrder(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/change-table")
+    public ResponseEntity<OrderResponse> changeTable(
+            @PathVariable Long id,
+            @Valid @RequestBody ChangeTableRequest req) {
+        return ResponseEntity.ok(service.changeTable(id, req.getNewTableId()));
+    }
+
 }

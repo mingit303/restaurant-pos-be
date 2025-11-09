@@ -268,4 +268,36 @@ public OrderResponse markItemServed(Long itemId) {
             orderEvents.orderChanged(order, "ORDER_SERVED");
         }
     }
+
+    @Transactional
+    public OrderResponse changeTable(Long orderId, Long newTableId) {
+        Order order = orderRepo.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy order."));
+        RestaurantTable oldTable = order.getTable();
+        RestaurantTable newTable = tableRepo.findByIdForUpdate(newTableId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn mới."));
+
+        if (newTable.getStatus() != TableStatus.FREE)
+            throw new BadRequestException("Bàn mới không trống, không thể chuyển.");
+
+        // ✅ Cập nhật trạng thái bàn
+        oldTable.setStatus(TableStatus.CLEANING);
+        newTable.setStatus(TableStatus.OCCUPIED);
+
+        // ✅ Chuyển order sang bàn mới
+        order.setTable(newTable);
+        orderRepo.save(order);
+        tableRepo.saveAll(List.of(oldTable, newTable));
+
+        // 🔔 Gửi realtime update
+        tableEvents.tableChanged(oldTable.getId(), oldTable.getCode(), oldTable.getCapacity(),
+                oldTable.getStatus().name(), "STATUS_CHANGED");
+        tableEvents.tableChanged(newTable.getId(), newTable.getCode(), newTable.getCapacity(),
+                newTable.getStatus().name(), "STATUS_CHANGED");
+
+        orderEvents.orderChanged(order, "TABLE_CHANGED");
+
+        return OrderMapper.toResponse(order);
+    }
+
 }
