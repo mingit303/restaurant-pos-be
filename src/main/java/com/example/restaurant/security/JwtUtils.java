@@ -95,4 +95,8 @@ public class JwtUtils {
             return true;
         }
     }
+
+    public long getRefreshExpirationMs() {
+        return refreshExpirationMs;
+    }
 }
