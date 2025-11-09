@@ -159,7 +159,9 @@ public class InvoiceService {
                     invoice.getCustomer() != null ? invoice.getCustomer().getName() : null,
                     invoice.getCustomer() != null ? invoice.getCustomer().getPhone() : null,
                     invoice.getVatRate(),
-                    invoice.getVatAmount());
+                    invoice.getVatAmount(),
+                    invoice.getOrder().getTable() != null ? invoice.getOrder().getTable().getCode() : null
+                );
         }
 
         // ✅ SAVE trước rồi mới broadcast
@@ -318,7 +320,8 @@ public class InvoiceService {
                 i.getCreatedAt(), i.getPaidAt(), i.getTransactionRef(),
                 i.getCustomer() != null ? i.getCustomer().getName() : null,
                 i.getCustomer() != null ? i.getCustomer().getPhone() : null, i.getVatRate(),
-    i.getVatAmount());
+                i.getVatAmount(), 
+                i.getOrder().getTable() != null ? i.getOrder().getTable().getCode() : null);
     }
 
     private String getVoucherError(Voucher v) {
@@ -544,4 +547,23 @@ public class InvoiceService {
     public BigDecimal getRevenue(LocalDateTime from, LocalDateTime to) {
         return invoiceRepo.sumTotalBetween(from, to);
     }
+
+    @Transactional
+    public String createVnpayPaymentLinkForCashier(Long id) {
+        Invoice invoice = invoiceRepo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn."));
+
+        if (invoice.getPaymentMethod() != PaymentMethod.VNPAY)
+            throw new BadRequestException("Hóa đơn này không phải thanh toán qua VNPAY.");
+
+        // Nếu chưa có transactionRef thì tạo mới
+        if (invoice.getTransactionRef() == null) {
+            invoice.setTransactionRef("INV" + System.currentTimeMillis());
+            invoiceRepo.save(invoice);
+        }
+
+        // Tạo lại link thanh toán
+        return createVnpayUrl(invoice);
+    }
+
 }

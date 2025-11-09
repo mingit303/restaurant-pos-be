@@ -88,4 +88,11 @@ public class InvoiceController {
             default -> ResponseEntity.badRequest().build();
         };
     }
+
+    @GetMapping("/{id}/vnpay")
+    public ResponseEntity<Map<String, String>> createVnpayLink(@PathVariable Long id) {
+        String link = service.createVnpayPaymentLinkForCashier(id);
+        return ResponseEntity.ok(Map.of("transactionRef", link));
+    }
+
 }
