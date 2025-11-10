@@ -104,25 +104,38 @@ public class MenuService {
     }
 
     // 🔹 helpers
-    private void upsertRecipe(MenuItem m, MenuItemRequest req) {
-        Recipe recipe = recipeRepo.findByMenuItem(m)
-                .orElseGet(() -> Recipe.builder().menuItem(m).build());
-        riRepo.deleteAll(recipe.getIngredients());
-        recipe.getIngredients().clear();
-        recipeRepo.save(recipe);
+private void upsertRecipe(MenuItem m, MenuItemRequest req) {
+    var lines = req.getRecipeItems();
+    var optRecipe = recipeRepo.findByMenuItem(m);
 
-        for (MenuItemRequest.RecipeItem line : req.getRecipeItems()) {
-            Ingredient ing = ingRepo.findById(line.getIngredientId()).orElseThrow();
-            RecipeIngredient ri = RecipeIngredient.builder()
-                    .recipe(recipe)
-                    .ingredient(ing)
-                    .quantity(line.getQuantity())
-                    .build();
-            riRepo.save(ri);
-            recipe.getIngredients().add(ri);
-        }
-        recipeRepo.save(recipe);
+    // ❎ Nếu không có nguyên liệu -> xóa công thức cũ nếu có
+    if (lines == null || lines.isEmpty()) {
+        optRecipe.ifPresent(r -> {
+            riRepo.deleteAll(r.getIngredients());
+            recipeRepo.delete(r);
+        });
+        return;
     }
+
+    // ✅ Nếu có nguyên liệu -> cập nhật hoặc tạo mới
+    Recipe recipe = optRecipe.orElseGet(() -> Recipe.builder().menuItem(m).build());
+    riRepo.deleteAll(recipe.getIngredients());
+    recipe.getIngredients().clear();
+    recipeRepo.save(recipe);
+
+    for (MenuItemRequest.RecipeItem line : lines) {
+        Ingredient ing = ingRepo.findById(line.getIngredientId()).orElseThrow();
+        RecipeIngredient ri = RecipeIngredient.builder()
+                .recipe(recipe)
+                .ingredient(ing)
+                .quantity(line.getQuantity())
+                .build();
+        riRepo.save(ri);
+        recipe.getIngredients().add(ri);
+    }
+    recipeRepo.save(recipe);
+}
+
 
     private void deleteOldImage(String imageUrl) {
         if (imageUrl == null || !imageUrl.startsWith("/images/menu/")) return;

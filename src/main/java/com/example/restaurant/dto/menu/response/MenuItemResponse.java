@@ -64,9 +64,10 @@ public class MenuItemResponse {
     // ⚙️ Constructors cho MenuItemResponse
     public MenuItemResponse() {}
 
+    @SuppressWarnings("unchecked")
     public MenuItemResponse(Long id, String name, String desc,
                             BigDecimal price, String img, boolean available,
-                            MenuCategoryResponse cat, List<RecipeIngredientDto> r) {
+                            MenuCategoryResponse cat, List<?> r) {
         this.id = id;
         this.name = name;
         this.description = desc;
@@ -74,7 +75,7 @@ public class MenuItemResponse {
         this.imageUrl = img;
         this.available = available;
         this.category = cat;
-        this.recipe = r;
+        this.recipe = (List<RecipeIngredientDto>)r;
     }
 
     public MenuItemResponse(Long id, String name, String desc,

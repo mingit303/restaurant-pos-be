@@ -39,7 +39,7 @@ public class MenuMapper {
                         ri.getIngredient().getThreshold()
                     )
                 ).collect(Collectors.toList())
-                : null;
+                : java.util.Collections.emptyList();
 
         return new MenuItemResponse(
             m.getId(),

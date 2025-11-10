@@ -1,6 +1,5 @@
 package com.example.restaurant.controller.inventory;
 
-// import com.example.restaurant.dto.inventory.*;
 import com.example.restaurant.dto.inventory.request.IngredientRequest;
 import com.example.restaurant.dto.inventory.response.IngredientResponse;
 import com.example.restaurant.service.inventory.IngredientService;

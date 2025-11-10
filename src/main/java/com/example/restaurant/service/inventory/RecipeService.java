@@ -8,10 +8,13 @@ import com.example.restaurant.mapper.MenuMapper;
 import com.example.restaurant.repository.inventory.*;
 import com.example.restaurant.repository.menu.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
+
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.stream.Collectors;
+// import java.util.stream.Collectors;
 
 @Service @RequiredArgsConstructor
 public class RecipeService {
@@ -21,23 +24,27 @@ public class RecipeService {
     private final MenuItemRepository menuRepo;
 
     // gọi khi OrderItem DONE
-    @Transactional(readOnly = true)
-    public void consumeFor(MenuItem menuItem) {
-        var recipe = recipeRepo.findByMenuItemId(menuItem.getId()).orElseThrow();
-        for (var ri : recipe.getIngredients()) {
-            var ing = ri.getIngredient();
+@Transactional(readOnly = true)
+public void consumeFor(MenuItem menuItem) {
+    var optRecipe = recipeRepo.findByMenuItemId(menuItem.getId());
+    if (optRecipe.isEmpty()) return; // ✅ Không có công thức thì bỏ qua
 
-            // 🔁 Quy đổi sang đơn vị nhập
-            double usedInBase = ri.getQuantity() / ing.getConvertRate();
-            double newQty = ing.getStockQuantity() - usedInBase;
+    var recipe = optRecipe.get();
+    for (var ri : recipe.getIngredients()) {
+        var ing = ri.getIngredient();
 
-            if (newQty < 0)
-                throw new IllegalStateException("Không đủ tồn kho cho " + ing.getName());
+        // 🔁 Quy đổi sang đơn vị nhập
+        double usedInBase = ri.getQuantity() / ing.getConvertRate();
+        double newQty = ing.getStockQuantity() - usedInBase;
 
-            ing.setStockQuantity(newQty);
-            ingredientRepo.save(ing);
-        }
+        if (newQty < 0)
+            throw new IllegalStateException("Không đủ tồn kho cho " + ing.getName());
+
+        ing.setStockQuantity(newQty);
+        ingredientRepo.save(ing);
     }
+}
+
 
     @Transactional(readOnly = true)
     public MenuItemResponse getRecipeView(Long menuItemId) {
@@ -46,17 +53,26 @@ public class RecipeService {
     }
 
 
-    @Transactional(readOnly = true)
-    public RecipeDetailResponse getDetailByMenuItemId(Long menuItemId) {
-        var recipe = recipeRepo.findByMenuItemId(menuItemId).orElseThrow();
-        var items = recipe.getIngredients().stream().map(ri ->
-                new RecipeDetailResponse.IngredientView(
-                        ri.getIngredient().getId(),
-                        ri.getIngredient().getName(),
-                        ri.getIngredient().getUseUnit(),
-                        ri.getQuantity()
-                )
-        ).collect(Collectors.toList());
-        return new RecipeDetailResponse(menuItemId, recipe.getMenuItem().getName(), items);
+@Transactional(readOnly = true)
+public RecipeDetailResponse getDetailByMenuItemId(Long menuItemId) {
+    var opt = recipeRepo.findByMenuItemId(menuItemId);
+    if (opt.isEmpty()) {
+        var menu = menuRepo.findById(menuItemId).orElseThrow();
+        return new RecipeDetailResponse(menuItemId, menu.getName(), java.util.List.of());
     }
+
+    var recipe = opt.get();
+    var items = recipe.getIngredients().stream().map(ri ->
+        new RecipeDetailResponse.IngredientView(
+            ri.getIngredient().getId(),
+            ri.getIngredient().getName(),
+            ri.getIngredient().getUseUnit(),
+            ri.getQuantity()
+        )
+    ).collect(Collectors.toList());
+
+    return new RecipeDetailResponse(menuItemId, recipe.getMenuItem().getName(), items);
+}
+
+
 }

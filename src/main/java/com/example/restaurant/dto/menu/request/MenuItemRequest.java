@@ -11,7 +11,6 @@ public class MenuItemRequest {
     private String imageUrl;
     @NotNull private Long categoryId;
 
-    @NotEmpty @Size(min = 1)
     private List<RecipeItem> recipeItems;
 
     public static class RecipeItem {
