@@ -22,11 +22,12 @@ public class InvoiceResponse {
     private String customerName;
     private String customerPhone;
     private String tableCode;
+    private BigDecimal afterDiscount;
     public InvoiceResponse(){}
     public InvoiceResponse(Long id, Long orderId, PaymentMethod method, InvoiceStatus status,
                            BigDecimal subtotal, BigDecimal discount,  BigDecimal total,
                            String voucherCode, LocalDateTime createdAt, LocalDateTime paidAt, String ref, String customerName, String customerPhone, BigDecimal vatRate,
-                            BigDecimal vatAmount, String tableCode){
+                            BigDecimal vatAmount, String tableCode, BigDecimal afterDiscount){
         this.id=id;
         this.orderId=orderId;
         this.paymentMethod=method;
@@ -43,6 +44,7 @@ public class InvoiceResponse {
         this.customerName = customerName;
         this.customerPhone = customerPhone;
         this.tableCode = tableCode;
+        this.afterDiscount = afterDiscount;
     }
     
 
@@ -166,4 +168,11 @@ public class InvoiceResponse {
 
     public String getTableCode() { return tableCode; }
     public void setTableCode(String tableCode) { this.tableCode = tableCode; }
+    public BigDecimal getAfterDiscount() {
+        return afterDiscount;
+    }
+    public void setAfterDiscount(BigDecimal afterDiscount) {
+        this.afterDiscount = afterDiscount;
+    }
+    
 }

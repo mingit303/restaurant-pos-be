@@ -3,11 +3,13 @@ package com.example.restaurant.service.invoice;
 import com.example.restaurant.domain.invoice.*;
 import com.example.restaurant.domain.order.*;
 import com.example.restaurant.domain.table.*;
+// import com.example.restaurant.domain.user.User;
 import com.example.restaurant.domain.voucher.Voucher;
 import com.example.restaurant.dto.invoice.request.CreateInvoiceRequest;
 import com.example.restaurant.dto.invoice.response.InvoiceResponse;
 import com.example.restaurant.exception.BadRequestException;
 import com.example.restaurant.exception.NotFoundException;
+import com.example.restaurant.repository.employee.EmployeeRepository;
 import com.example.restaurant.repository.invoice.InvoiceRepository;
 import com.example.restaurant.repository.order.OrderRepository;
 import com.example.restaurant.repository.table.RestaurantTableRepository;
@@ -16,13 +18,16 @@ import com.example.restaurant.service.voucher.VoucherService;
 import com.example.restaurant.ws.OrderEventPublisher;
 import com.example.restaurant.ws.TableEventPublisher;
 import com.example.restaurant.domain.customer.Customer;
+import com.example.restaurant.domain.employee.Employee;
 import com.example.restaurant.service.customer.CustomerService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import com.example.restaurant.ws.InvoiceEventPublisher;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -47,6 +52,7 @@ public class InvoiceService {
 
     private final InvoiceEventPublisher invoiceEvents;
     private final InvoiceRepository invoiceRepo;
+    private final EmployeeRepository employeeRepo; 
     private final OrderRepository orderRepo;
     private final VoucherRepository voucherRepo;
     private final VoucherService voucherService;
@@ -137,7 +143,9 @@ public class InvoiceService {
 
         // ✅ 3️⃣ Cuối cùng: tính tổng sau VAT
         BigDecimal afterDiscount = invoice.getSubtotal().subtract(invoice.getDiscount());
-        BigDecimal vatAmount = afterDiscount.multiply(invoice.getVatRate());
+        BigDecimal vatAmount = afterDiscount
+        .multiply(invoice.getVatRate())
+        .setScale(0, RoundingMode.DOWN);
         invoice.setVatAmount(vatAmount);
         invoice.setTotal(afterDiscount.add(vatAmount));
 
@@ -160,7 +168,8 @@ public class InvoiceService {
                     invoice.getCustomer() != null ? invoice.getCustomer().getPhone() : null,
                     invoice.getVatRate(),
                     invoice.getVatAmount(),
-                    invoice.getOrder().getTable() != null ? invoice.getOrder().getTable().getCode() : null
+                    invoice.getOrder().getTable() != null ? invoice.getOrder().getTable().getCode() : null,
+                    afterDiscount
                 );
         }
 
@@ -245,6 +254,13 @@ public class InvoiceService {
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn."));
         inv.setStatus(InvoiceStatus.PAID);
         inv.setPaidAt(LocalDateTime.now());
+
+        if (inv.getPaymentMethod() == PaymentMethod.CASH) {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            Employee cashier = employeeRepo.findByUserUsername(username)
+                    .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên thu ngân"));
+            inv.setCashier(cashier);
+        }
         invoiceRepo.save(inv);
 
         if (inv.getCustomer() != null) {
@@ -314,6 +330,8 @@ public class InvoiceService {
     }
 
     private InvoiceResponse map(Invoice i) {
+        BigDecimal afterDiscount = i.getSubtotal()
+        .subtract(i.getDiscount() != null ? i.getDiscount() : BigDecimal.ZERO);
         return new InvoiceResponse(i.getId(), i.getOrder().getId(), i.getPaymentMethod(), i.getStatus(),
                 i.getSubtotal(), i.getDiscount(), i.getTotal(),
                 i.getVoucher() != null ? i.getVoucher().getCode() : null,
@@ -321,7 +339,8 @@ public class InvoiceService {
                 i.getCustomer() != null ? i.getCustomer().getName() : null,
                 i.getCustomer() != null ? i.getCustomer().getPhone() : null, i.getVatRate(),
                 i.getVatAmount(), 
-                i.getOrder().getTable() != null ? i.getOrder().getTable().getCode() : null);
+                i.getOrder().getTable() != null ? i.getOrder().getTable().getCode() : null,
+                afterDiscount);
     }
 
     private String getVoucherError(Voucher v) {

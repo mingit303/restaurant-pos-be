@@ -44,6 +44,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
         @Param("status") InvoiceStatus status,
         @Param("year") int year
     );
+    
     @Query("""
     SELECT SUM(i.total) FROM Invoice i
     WHERE i.status = 'PAID'
@@ -51,4 +52,13 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     """)
     BigDecimal sumTotalBetween(@Param("from") LocalDateTime from,
                             @Param("to") LocalDateTime to);
+
+    @Query("""
+        SELECT COALESCE(SUM(i.total), 0)
+        FROM Invoice i
+        WHERE i.status = 'PAID'
+        AND DATE(i.paidAt) = CURRENT_DATE
+    """)
+    BigDecimal sumRevenueToday();
+
 }

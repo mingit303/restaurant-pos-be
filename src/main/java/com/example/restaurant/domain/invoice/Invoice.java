@@ -3,6 +3,8 @@ package com.example.restaurant.domain.invoice;
 import com.example.restaurant.domain.order.Order;
 import com.example.restaurant.domain.voucher.Voucher;
 import com.example.restaurant.domain.customer.Customer;
+import com.example.restaurant.domain.employee.Employee;
+
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -52,10 +54,11 @@ public class Invoice {
     @Builder.Default
     private BigDecimal redeemedValue = BigDecimal.ZERO;
 
-
-
     private String transactionNo;   // Mã giao dịch từ VNPAY
     private String transactionRef;  // Ref unique khi redirect
     private LocalDateTime createdAt;
     private LocalDateTime paidAt;
+    @ManyToOne
+    @JoinColumn(name = "cashier_id", nullable = true)
+    private Employee cashier;
 }

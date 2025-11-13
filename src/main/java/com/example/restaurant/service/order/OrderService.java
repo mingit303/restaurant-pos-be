@@ -180,15 +180,39 @@ public class OrderService {
         return OrderMapper.toResponse(order);
     }
 
+
     @Transactional
     public void updateItemState(Long itemId, OrderItemState newState) {
-        OrderItem item = itemRepo.findById(itemId).orElseThrow(() -> new NotFoundException("Không tìm thấy món."));
+        OrderItem item = itemRepo.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy món."));
+
+        // ✔️ Cập nhật doneAt theo state
+        if (newState == OrderItemState.DONE) {
+            if (item.getDoneAt() == null) {
+                item.setDoneAt(LocalDateTime.now());
+
+                String username = SecurityContextHolder.getContext().getAuthentication().getName();
+                Employee chef = employeeRepo.findByUserUsername(username)
+                        .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên bếp."));
+                item.setChef(chef);
+            }
+        } else {
+            item.setDoneAt(null);
+            item.setChef(null);
+        }
+
+        // Cập nhật state & side-effects
         item.setState(newState);
         itemRepo.save(item);
-        if (newState == OrderItemState.DONE) recipeService.consumeFor(item.getMenuItem());
+
+        if (newState == OrderItemState.DONE) {
+            recipeService.consumeFor(item.getMenuItem());
+        }
+
         checkAndUpdateOrderServed(item.getOrder());
         orderEvents.orderItemChanged(item, "ITEM_STATE_UPDATED");
     }
+
 
 @Transactional
 public OrderResponse markItemServed(Long itemId) {

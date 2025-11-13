@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(name = "orders")
@@ -46,4 +47,7 @@ public class Order {
 
      @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt; 
 }
