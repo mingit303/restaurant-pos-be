@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController @RequestMapping("/orders") @RequiredArgsConstructor
 public class OrderController {
@@ -56,10 +57,15 @@ public class OrderController {
     }
 
     @PatchMapping("/items/{id}/state")
-    public ResponseEntity<Void> updateItemState(@PathVariable Long id, @Valid @RequestBody UpdateItemStateRequest req){
-        service.updateItemState(id, OrderItemState.valueOf(req.getState()));
-        return ResponseEntity.ok().build();
+    public ResponseEntity<OrderResponse> updateItemState(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateItemStateRequest req
+    ) {
+        return ResponseEntity.ok(
+            service.updateItemState(id, OrderItemState.valueOf(req.getState()))
+        );
     }
+
 
     @PatchMapping("/items/{id}/served")
     public ResponseEntity<OrderResponse> markServed(@PathVariable Long id) {
@@ -73,11 +79,29 @@ public class OrderController {
         return ResponseEntity.noContent().build();
     }
 
+
     @PatchMapping("/{id}/change-table")
     public ResponseEntity<OrderResponse> changeTable(
             @PathVariable Long id,
             @Valid @RequestBody ChangeTableRequest req) {
         return ResponseEntity.ok(service.changeTable(id, req.getNewTableId()));
     }
+
+
+    @PatchMapping("/{id}/complete")
+    public ResponseEntity<OrderResponse> completeOrder(@PathVariable Long id) {
+        return ResponseEntity.ok(service.completeOrder(id));
+    }
+
+    @GetMapping("/kitchen")
+    public ResponseEntity<List<OrderResponse>> getOrdersForKitchen() {
+        return ResponseEntity.ok(service.getOrdersForKitchen());
+    }
+
+    @PatchMapping("/{id}/done-all")
+    public ResponseEntity<OrderResponse> doneAll(@PathVariable Long id) {
+        return ResponseEntity.ok(service.markAllDone(id));
+    }
+
 
 }

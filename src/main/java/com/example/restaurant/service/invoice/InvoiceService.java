@@ -20,6 +20,7 @@ import com.example.restaurant.ws.TableEventPublisher;
 import com.example.restaurant.domain.customer.Customer;
 import com.example.restaurant.domain.employee.Employee;
 import com.example.restaurant.service.customer.CustomerService;
+import com.example.restaurant.util.MoneyUtils;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -407,101 +408,153 @@ public class InvoiceService {
     }
 
 
-    @Transactional(readOnly = true)
-    public byte[] generateInvoicePdf(Long id) {
-        Invoice inv = invoiceRepo.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn."));
-        Order order = inv.getOrder();
+@Transactional(readOnly = true)
+public byte[] generateInvoicePdf(Long id) {
+    Invoice inv = invoiceRepo.findById(id)
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy hóa đơn."));
+    Order order = inv.getOrder();
 
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            Document doc = new Document(PageSize.A5);
-            PdfWriter.getInstance(doc, baos);
-            doc.open();
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+        Document doc = new Document(PageSize.A5, 25, 25, 20, 20); // A5 + margin đẹp
+        PdfWriter.getInstance(doc, baos);
+        doc.open();
 
-            // === 🖼️ THÊM LOGO ===
-            try {
-                Image logo = Image.getInstance("uploads/images/logo/logo.png");
-                logo.scaleToFit(100, 100); // chỉnh kích thước nhỏ gọn
-                logo.setAlignment(Image.ALIGN_CENTER);
-                doc.add(logo);
-            } catch (Exception e) {
-                System.out.println("⚠️ Không tìm thấy logo, bỏ qua phần ảnh.");
-            }
-
-            // === 🍣 HEADER ===
-            Font titleFont = new Font(Font.HELVETICA, 16, Font.BOLD);
-            Font boldFont = new Font(Font.HELVETICA, 12, Font.BOLD);
-            Font normalFont = new Font(Font.HELVETICA, 11);
-            Font smallFont = new Font(Font.HELVETICA, 9);
-
-            Paragraph header = new Paragraph("🍣 Sushi POS Restaurant 🍣", titleFont);
-            header.setAlignment(Paragraph.ALIGN_CENTER);
-            doc.add(header);
-            Paragraph addr = new Paragraph("123 Đ. 3 Tháng 2, Xuân Khánh, Ninh Kiều, Cần Thơ\nHotline: 0912 345 678", smallFont);
-            addr.setAlignment(Paragraph.ALIGN_CENTER);
-            doc.add(addr);
-
-            doc.add(new Paragraph("--------------------------------------------------", smallFont));
-            doc.add(new Paragraph("HÓA ĐƠN THANH TOÁN", boldFont));
-            doc.add(new Paragraph("Mã hóa đơn: #" + inv.getId() + "     Ngày: " + inv.getCreatedAt().toString().substring(0,16), normalFont));
-            doc.add(new Paragraph("Phương thức: " + inv.getPaymentMethod() + "     Trạng thái: " + inv.getStatus(), normalFont));
-            if (inv.getCustomer() != null) {
-                doc.add(new Paragraph("Khách hàng: " + inv.getCustomer().getName() + " (" + inv.getCustomer().getPhone() + ")", normalFont));
-            }
-            doc.add(new Paragraph("--------------------------------------------------", smallFont));
-
-            // ==== 🥢 TABLE ====
-            PdfPTable table = new PdfPTable(new float[]{3, 1, 2, 2});
-            table.setWidthPercentage(100);
-            table.addCell("Món");
-            table.addCell("SL");
-            table.addCell("Đơn giá");
-            table.addCell("Thành tiền");
-
-            for (OrderItem item : order.getItems()) {
-                table.addCell(item.getMenuItem().getName());
-                table.addCell(String.valueOf(item.getQuantity()));
-                table.addCell(String.format("%,d", item.getMenuItem().getPrice().intValue()));
-                table.addCell(String.format("%,d", item.getLineTotal().intValue()));
-            }
-
-            doc.add(table);
-            doc.add(new Paragraph("--------------------------------------------------", smallFont));
-
-            // ==== TOTAL ====
-            BigDecimal subtotal = inv.getSubtotal();
-            BigDecimal discount = inv.getDiscount() != null ? inv.getDiscount() : BigDecimal.ZERO;
-            BigDecimal total = inv.getTotal();
-            BigDecimal redeemValue = inv.getRedeemedValue() != null ? inv.getRedeemedValue() : BigDecimal.ZERO;
-
-            doc.add(new Paragraph(String.format("Tạm tính: %30s", String.format("%,d", subtotal.intValue())), normalFont));
-            if (discount.compareTo(BigDecimal.ZERO) > 0)
-                doc.add(new Paragraph(String.format("Giảm giá voucher: %22s", String.format("%,d", discount.intValue())), normalFont));
-            if (redeemValue.compareTo(BigDecimal.ZERO) > 0)
-                doc.add(new Paragraph(String.format("Dùng điểm: %29s", String.format("%,d", redeemValue.intValue())), normalFont));
-            doc.add(new Paragraph(String.format("Tạm tính: %30s", String.format("%,d", subtotal.intValue())), normalFont));
-
-            if (discount.compareTo(BigDecimal.ZERO) > 0)
-                doc.add(new Paragraph(String.format("Giảm giá: %30s", String.format("%,d", discount.intValue())), normalFont));
-
-            doc.add(new Paragraph(String.format("Thuế VAT (%.0f%%): %25s", inv.getVatRate().multiply(BigDecimal.valueOf(100)).doubleValue(), String.format("%,d", inv.getVatAmount().intValue())), normalFont));
-
-            doc.add(new Paragraph(String.format("TỔNG CỘNG: %28s", String.format("%,d", total.intValue())), boldFont));
-
-
-            doc.add(new Paragraph("--------------------------------------------------", smallFont));
-
-            // ==== FOOTER ====
-            Paragraph thanks = new Paragraph("Cảm ơn quý khách và hẹn gặp lại! 🍣", normalFont);
-            thanks.setAlignment(Paragraph.ALIGN_CENTER);
-            doc.add(thanks);
-            
-            doc.close();
-            return baos.toByteArray();
+        /* ===================== LOGO ===================== */
+        try {
+            Image logo = Image.getInstance("uploads/images/logo/logo.png");
+            logo.scaleToFit(90, 90);
+            logo.setAlignment(Image.ALIGN_CENTER);
+            doc.add(logo);
         } catch (Exception e) {
-            throw new RuntimeException("Lỗi xuất PDF: " + e.getMessage());
+            System.out.println("⚠ Không thể load logo.");
         }
+
+        /* ===================== FONT ===================== */
+        Font titleFont = new Font(Font.HELVETICA, 16, Font.BOLD);
+        Font boldFont = new Font(Font.HELVETICA, 12, Font.BOLD);
+        Font normalFont = new Font(Font.HELVETICA, 11);
+        Font smallFont = new Font(Font.HELVETICA, 9);
+
+        /* ===================== HEADER ===================== */
+        Paragraph header = new Paragraph("🍣 Mikado Sushi Restaurant 🍣", titleFont);
+        header.setAlignment(Paragraph.ALIGN_CENTER);
+        doc.add(header);
+
+        Paragraph address = new Paragraph(
+                "123 Đ. 3 Tháng 2, Xuân Khánh, Ninh Kiều, Cần Thơ\nHotline: 0912 345 678",
+                smallFont
+        );
+        address.setAlignment(Paragraph.ALIGN_CENTER);
+        doc.add(address);
+
+        doc.add(new Paragraph("----------------------------------------------", smallFont));
+
+        /* ===================== THÔNG TIN HÓA ĐƠN ===================== */
+        doc.add(new Paragraph("HÓA ĐƠN THANH TOÁN", boldFont));
+        doc.add(new Paragraph(
+                "Mã hóa đơn: #" + inv.getId()
+                        + "     Ngày: " + inv.getCreatedAt().toString().substring(0, 16),
+                normalFont
+        ));
+        doc.add(new Paragraph(
+                "Phương thức: " + inv.getPaymentMethod()
+                        + "     Trạng thái: " + inv.getStatus(),
+                normalFont
+        ));
+
+        if (inv.getCustomer() != null) {
+            doc.add(new Paragraph(
+                    "Khách hàng: " + inv.getCustomer().getName()
+                            + " (" + inv.getCustomer().getPhone() + ")",
+                    normalFont
+            ));
+        }
+
+        doc.add(new Paragraph("----------------------------------------------", smallFont));
+
+        /* ===================== GOM NHÓM CÁC MÓN ===================== */
+        Map<String, OrderItem> group = new LinkedHashMap<>();
+
+        for (OrderItem item : order.getItems()) {
+            String key = item.getMenuItem().getName() + "__" + (item.getNote() == null ? "" : item.getNote());
+
+            if (!group.containsKey(key)) {
+group.put(key,
+    OrderItem.builder()
+        .id(null)
+        .order(null) // không cần order khi chỉ in bill
+        .menuItem(item.getMenuItem())
+        .unitPrice(item.getUnitPrice())
+        .quantity(item.getQuantity())
+        .lineTotal(item.getLineTotal())
+        .note(item.getNote())
+        .state(item.getState())
+        .chef(item.getChef())
+        .createdAt(item.getCreatedAt())
+        .updatedAt(item.getUpdatedAt())
+        .doneAt(item.getDoneAt())
+        .build()
+);
+
+            } else {
+                OrderItem g = group.get(key);
+                g.setQuantity(g.getQuantity() + item.getQuantity());
+                g.setLineTotal(g.getLineTotal().add(item.getLineTotal()));
+            }
+        }
+
+        /* ===================== TABLE ===================== */
+        PdfPTable table = new PdfPTable(new float[]{3, 1, 2, 2});
+        table.setWidthPercentage(100);
+
+        table.addCell("Món");
+        table.addCell("SL");
+        table.addCell("Đơn giá");
+        table.addCell("Thành tiền");
+
+        for (OrderItem item : group.values()) {
+            table.addCell(item.getMenuItem().getName()
+                    + (item.getNote() != null && !item.getNote().isBlank()
+                    ? "\n(" + item.getNote() + ")"
+                    : ""));
+            table.addCell(String.valueOf(item.getQuantity()));
+            table.addCell(MoneyUtils.format(item.getMenuItem().getPrice()));
+            table.addCell(MoneyUtils.format(item.getLineTotal()));
+        }
+
+        doc.add(table);
+        doc.add(new Paragraph("----------------------------------------------", smallFont));
+
+        /* ===================== TÍNH TIỀN ===================== */
+        BigDecimal subtotal = inv.getSubtotal();
+        BigDecimal discount = inv.getDiscount() != null ? inv.getDiscount() : BigDecimal.ZERO;
+        BigDecimal vat = inv.getVatAmount() != null ? inv.getVatAmount() : BigDecimal.ZERO;
+        BigDecimal total = inv.getTotal();
+
+        doc.add(new Paragraph(String.format("Tạm tính: %28s", MoneyUtils.format(subtotal)), normalFont));
+
+        if (discount.compareTo(BigDecimal.ZERO) > 0)
+            doc.add(new Paragraph(String.format("Giảm giá: %29s", "-" + MoneyUtils.format(discount)), normalFont));
+
+        doc.add(new Paragraph(String.format("VAT: %34s", MoneyUtils.format(vat), normalFont)));
+
+        doc.add(new Paragraph(String.format("TỔNG CỘNG: %23s", MoneyUtils.format(total)), boldFont));
+
+        doc.add(new Paragraph("----------------------------------------------", smallFont));
+
+        /* ===================== FOOTER ===================== */
+        Paragraph thanks = new Paragraph("Cảm ơn quý khách và hẹn gặp lại! 🍣", normalFont);
+        thanks.setAlignment(Paragraph.ALIGN_CENTER);
+        doc.add(thanks);
+
+        doc.close();
+        return baos.toByteArray();
+
+    } catch (Exception e) {
+        throw new RuntimeException("Lỗi xuất PDF: " + e.getMessage());
     }
+}
+
 
     @Transactional(readOnly = true)
     public Map<String, Object> getSummaryByDate(LocalDate date) {
