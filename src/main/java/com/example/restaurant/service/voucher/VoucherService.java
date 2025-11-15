@@ -16,6 +16,7 @@
 
     import java.math.BigDecimal;
     import java.time.LocalDate;
+import java.util.List;
 
     @Service @RequiredArgsConstructor
     public class VoucherService {
@@ -117,4 +118,19 @@
             if (v.getDiscountPercent()==null || v.getDiscountPercent().compareTo(BigDecimal.ZERO) <= 0) return "Voucher không hợp lệ.";
             return null;
         }
+
+        @Transactional(readOnly = true)
+        public List<VoucherCheckResponse> getUsableVouchers() {
+            return repo.findAll().stream()
+                    .filter(v -> validateUsable(v) == null) // chỉ voucher hợp lệ
+                    .map(v -> new VoucherCheckResponse(
+                            true,
+                            "OK",
+                            v.getCode(),
+                            v.getDiscountPercent(),
+                            v.getMaxDiscount()
+                    ))
+                    .toList();
+        }
+
     }

@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/vouchers")
@@ -56,4 +57,10 @@ public class VoucherController {
     public ResponseEntity<VoucherCheckResponse> check(@RequestParam String code){
         return ResponseEntity.ok(service.check(code));
     }
+
+    @GetMapping("/usable")
+    public ResponseEntity<List<VoucherCheckResponse>> usable() {
+        return ResponseEntity.ok(service.getUsableVouchers());
+    }
+
 }
