@@ -28,14 +28,18 @@ public class ProfileService {
             throw new BadRequestException("Không tìm thấy thông tin nhân viên");
         }
         return new ProfileResponse(
+                e.getId(),
                 user.getUsername(),
                 e.getFullName(),
                 e.getGender(),
                 e.getBirthDate(),
                 e.getEmail(),
                 e.getPhone(),
-                user.getRole().getName()
+                e.getCitizenId(),
+                user.getRole().getName(),
+                e.getAvatarUrl() != null ? e.getAvatarUrl() : "/images/avatars/default-avatar.png"
         );
+
     }
 
     @Transactional
@@ -48,7 +52,7 @@ public class ProfileService {
         e.setBirthDate(req.getBirthDate());
         e.setEmail(req.getEmail());
         e.setPhone(req.getPhone());
-
+        e.setCitizenId(req.getCitizenId());
         employeeRepo.save(e);
 
         return getProfile(user);

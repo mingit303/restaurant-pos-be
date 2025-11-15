@@ -27,4 +27,6 @@
         @OneToOne(fetch = FetchType.LAZY, cascade = {CascadeType.MERGE, CascadeType.REMOVE}, orphanRemoval = true)
         @JoinColumn(name = "user_id", unique = true)
         private User user;
+        @Column(nullable = true)
+        private String avatarUrl; 
     }

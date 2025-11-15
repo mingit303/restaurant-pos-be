@@ -10,4 +10,5 @@ public class UpdateProfileRequest {
     private LocalDate birthDate;
     private String email;
     private String phone;
+    private String citizenId;
 }

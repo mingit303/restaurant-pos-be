@@ -18,6 +18,7 @@ public class EmployeeResponse {
     private String email;
     private String phone;
     private String position;
+    private String avatarUrl;
 
     private Long userId;
     private String username;
@@ -35,6 +36,7 @@ public class EmployeeResponse {
                 .email(e.getEmail())
                 .phone(e.getPhone())
                 .position(e.getPosition())
+                .avatarUrl(e.getAvatarUrl() != null ? e.getAvatarUrl() : "/images/avatars/default-avatar.png")
                 .userId(u != null ? u.getId() : null)
                 .username(u != null ? u.getUsername() : null)
                 .roleName(u != null && u.getRole() != null ? u.getRole().getName() : null)

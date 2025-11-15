@@ -9,6 +9,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.Map;
 
@@ -66,5 +68,12 @@ public class EmployeeController {
     public ResponseEntity<String> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.ok("Đã xóa nhân viên và tài khoản tương ứng!");
+    }
+
+    @PostMapping("/{id}/avatar")
+    public ResponseEntity<EmployeeResponse> uploadAvatar(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(service.uploadAvatar(id, file));
     }
 }
