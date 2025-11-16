@@ -104,37 +104,37 @@ public class MenuService {
     }
 
     // 🔹 helpers
-private void upsertRecipe(MenuItem m, MenuItemRequest req) {
-    var lines = req.getRecipeItems();
-    var optRecipe = recipeRepo.findByMenuItem(m);
+    private void upsertRecipe(MenuItem m, MenuItemRequest req) {
+        var lines = req.getRecipeItems();
+        var optRecipe = recipeRepo.findByMenuItem(m);
 
-    // ❎ Nếu không có nguyên liệu -> xóa công thức cũ nếu có
-    if (lines == null || lines.isEmpty()) {
-        optRecipe.ifPresent(r -> {
-            riRepo.deleteAll(r.getIngredients());
-            recipeRepo.delete(r);
-        });
-        return;
+        // ❎ Nếu không có nguyên liệu -> xóa công thức cũ nếu có
+        if (lines == null || lines.isEmpty()) {
+            optRecipe.ifPresent(r -> {
+                riRepo.deleteAll(r.getIngredients());
+                recipeRepo.delete(r);
+            });
+            return;
+        }
+
+        // ✅ Nếu có nguyên liệu -> cập nhật hoặc tạo mới
+        Recipe recipe = optRecipe.orElseGet(() -> Recipe.builder().menuItem(m).build());
+        riRepo.deleteAll(recipe.getIngredients());
+        recipe.getIngredients().clear();
+        recipeRepo.save(recipe);
+
+        for (MenuItemRequest.RecipeItem line : lines) {
+            Ingredient ing = ingRepo.findById(line.getIngredientId()).orElseThrow();
+            RecipeIngredient ri = RecipeIngredient.builder()
+                    .recipe(recipe)
+                    .ingredient(ing)
+                    .quantity(line.getQuantity())
+                    .build();
+            riRepo.save(ri);
+            recipe.getIngredients().add(ri);
+        }
+        recipeRepo.save(recipe);
     }
-
-    // ✅ Nếu có nguyên liệu -> cập nhật hoặc tạo mới
-    Recipe recipe = optRecipe.orElseGet(() -> Recipe.builder().menuItem(m).build());
-    riRepo.deleteAll(recipe.getIngredients());
-    recipe.getIngredients().clear();
-    recipeRepo.save(recipe);
-
-    for (MenuItemRequest.RecipeItem line : lines) {
-        Ingredient ing = ingRepo.findById(line.getIngredientId()).orElseThrow();
-        RecipeIngredient ri = RecipeIngredient.builder()
-                .recipe(recipe)
-                .ingredient(ing)
-                .quantity(line.getQuantity())
-                .build();
-        riRepo.save(ri);
-        recipe.getIngredients().add(ri);
-    }
-    recipeRepo.save(recipe);
-}
 
 
     private void deleteOldImage(String imageUrl) {
@@ -147,10 +147,30 @@ private void upsertRecipe(MenuItem m, MenuItemRequest req) {
     @Transactional
     public MenuItemResponse toggleAvailable(Long id) {
         MenuItem item = menuRepo.findById(id).orElseThrow();
+
+        // Nếu đang OFF mà muốn bật lại
+        if (!item.isAvailable()) {
+            var recipe = item.getRecipe();
+            if (recipe != null) {
+                boolean canSell = recipe.getIngredients().stream().allMatch(ri -> {
+                    var ing = ri.getIngredient();
+                    double need = ri.getQuantity() / ing.getConvertRate();
+                    return ing.getStockQuantity() >= need;
+                });
+
+                if (!canSell) {
+                    throw new IllegalStateException("Không đủ nguyên liệu để bật món này!");
+                }
+            }
+        }
+
+        // Toggle normally
         item.setAvailable(!item.isAvailable());
         menuRepo.save(item);
 
-        menuEvents.menuChanged(item, "UPDATED"); // realtime cho FE
-        return MenuMapper.toResponse(item);
+        menuEvents.menuChanged(item, "UPDATED");
+
+        return MenuMapper.toResponseWithRecipe(item);
     }
+
 }

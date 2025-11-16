@@ -12,8 +12,9 @@ public class MenuItemResponse {
     private boolean available;
     private MenuCategoryResponse category;
     private List<RecipeIngredientDto> recipe;
+    private boolean canSell;
 
-    // ✅ DTO cho nguyên liệu trong công thức món
+    // DTO cho nguyên liệu trong công thức món
     public static class RecipeIngredientDto {
         private Long ingredientId;
         private String ingredientName;
@@ -22,10 +23,13 @@ public class MenuItemResponse {
         private String useUnit;
         private Double convertRate;
         private Double threshold;
+        
+
+
 
         public RecipeIngredientDto() {}
 
-        // ⚙️ Constructor đầy đủ — khớp với MenuMapper
+        // Constructor đầy đủ — khớp với MenuMapper
         public RecipeIngredientDto(Long id, String name, Double stockQuantity,
                                    String baseUnit, String useUnit,
                                    Double convertRate, Double threshold) {
@@ -61,13 +65,13 @@ public class MenuItemResponse {
         public void setThreshold(Double v) { this.threshold = v; }
     }
 
-    // ⚙️ Constructors cho MenuItemResponse
+    // Constructors cho MenuItemResponse
     public MenuItemResponse() {}
 
     @SuppressWarnings("unchecked")
     public MenuItemResponse(Long id, String name, String desc,
                             BigDecimal price, String img, boolean available,
-                            MenuCategoryResponse cat, List<?> r) {
+                            MenuCategoryResponse cat, List<?> r, boolean canSell) {
         this.id = id;
         this.name = name;
         this.description = desc;
@@ -76,36 +80,39 @@ public class MenuItemResponse {
         this.available = available;
         this.category = cat;
         this.recipe = (List<RecipeIngredientDto>)r;
+        this.canSell = canSell;
     }
 
     public MenuItemResponse(Long id, String name, String desc,
                             BigDecimal price, String img, boolean available,
-                            MenuCategoryResponse cat) {
-        this(id, name, desc, price, img, available, cat, null);
+                            MenuCategoryResponse cat, boolean canSell) {
+        this(id, name, desc, price, img, available, cat, null, canSell);
     }
 
-    // 🧩 Getters / Setters
+    // Getters / Setters
     public Long getId() { return id; }
-    public void setId(Long v) { this.id = v; }
+    public void setId(Long id) { this.id = id; }
 
     public String getName() { return name; }
-    public void setName(String v) { this.name = v; }
+    public void setName(String name) { this.name = name; }
 
     public String getDescription() { return description; }
-    public void setDescription(String v) { this.description = v; }
+    public void setDescription(String description) { this.description = description; }
 
     public BigDecimal getPrice() { return price; }
-    public void setPrice(BigDecimal v) { this.price = v; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
     public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String v) { this.imageUrl = v; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public boolean isAvailable() { return available; }
-    public void setAvailable(boolean v) { this.available = v; }
+    public void setAvailable(boolean available) { this.available = available; }
 
     public MenuCategoryResponse getCategory() { return category; }
-    public void setCategory(MenuCategoryResponse v) { this.category = v; }
+    public void setCategory(MenuCategoryResponse category) { this.category = category; }
 
     public List<RecipeIngredientDto> getRecipe() { return recipe; }
-    public void setRecipe(List<RecipeIngredientDto> v) { this.recipe = v; }
+    public void setRecipe(List<RecipeIngredientDto> recipe) { this.recipe = recipe; }
+    public boolean isCanSell() { return canSell; }
+    public void setCanSell(boolean canSell) { this.canSell = canSell; }
 }
