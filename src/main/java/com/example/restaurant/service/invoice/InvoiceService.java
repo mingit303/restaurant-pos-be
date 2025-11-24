@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 
@@ -291,7 +292,7 @@ public class InvoiceService {
             inv.setPaidAt(LocalDateTime.now());
             invoiceRepo.save(inv);
 
-            // ✅ Cộng điểm thưởng cho khách hàng nếu có
+            // Cộng điểm thưởng cho khách hàng nếu có
             if (inv.getCustomer() != null) {
                 // Nạp lại entity customer để chắc chắn là managed
                 Customer customer = customerService.getById(inv.getCustomer().getId());
@@ -299,10 +300,10 @@ public class InvoiceService {
                 customerService.addPoints(customer, earn, "Tích điểm hóa đơn #" + inv.getId());
             }
 
-            // ✅ Hoàn tất order & bàn
+            // Hoàn tất order & bàn
             finishOrder(inv);
 
-            // ✅ Phát realtime event
+            // Phát realtime event
             invoiceEvents.invoiceChanged(inv, "PAID");
 
             return "success";
@@ -426,7 +427,7 @@ public byte[] generateInvoicePdf(Long id) {
             logo.setAlignment(Image.ALIGN_CENTER);
             doc.add(logo);
         } catch (Exception e) {
-            System.out.println("⚠ Không thể load logo.");
+            System.out.println("Không thể load logo.");
         }
 
         /* ===================== FONT ===================== */
@@ -436,7 +437,7 @@ public byte[] generateInvoicePdf(Long id) {
         Font smallFont = new Font(Font.HELVETICA, 9);
 
         /* ===================== HEADER ===================== */
-        Paragraph header = new Paragraph("🍣 Mikado Sushi Restaurant 🍣", titleFont);
+        Paragraph header = new Paragraph("Mikado Sushi Restaurant", titleFont);
         header.setAlignment(Paragraph.ALIGN_CENTER);
         doc.add(header);
 
@@ -447,54 +448,59 @@ public byte[] generateInvoicePdf(Long id) {
         address.setAlignment(Paragraph.ALIGN_CENTER);
         doc.add(address);
 
-        doc.add(new Paragraph("----------------------------------------------", smallFont));
+        Paragraph devidedLine = new Paragraph("----------------------------------------------", smallFont);
+        devidedLine.setAlignment(Paragraph.ALIGN_CENTER);
+        doc.add(devidedLine);
 
         /* ===================== THÔNG TIN HÓA ĐƠN ===================== */
-        doc.add(new Paragraph("HÓA ĐƠN THANH TOÁN", boldFont));
+        Paragraph title = new Paragraph("HÓA ĐƠN THANH TOÁN", boldFont);
+        title.setAlignment(Paragraph.ALIGN_CENTER);
+        doc.add(title);
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
         doc.add(new Paragraph(
-                "Mã hóa đơn: #" + inv.getId()
-                        + "     Ngày: " + inv.getCreatedAt().toString().substring(0, 16),
-                normalFont
-        ));
-        doc.add(new Paragraph(
-                "Phương thức: " + inv.getPaymentMethod()
-                        + "     Trạng thái: " + inv.getStatus(),
-                normalFont
-        ));
+                "Mã hóa đơn: #" + inv.getId(),normalFont));
+        Paragraph time = new Paragraph("Ngày: " + inv.getCreatedAt().format(dtf), normalFont);
+        doc.add(time);
+        // doc.add(new Paragraph(
+        //         "Phương thức: " + inv.getPaymentMethod()
+        //                 + "     Trạng thái: " + inv.getStatus(),
+        //         normalFont
+        // ));
 
-        if (inv.getCustomer() != null) {
-            doc.add(new Paragraph(
-                    "Khách hàng: " + inv.getCustomer().getName()
-                            + " (" + inv.getCustomer().getPhone() + ")",
-                    normalFont
-            ));
-        }
+        // if (inv.getCustomer() != null) {
+        //     doc.add(new Paragraph(
+        //             "Khách hàng: " + inv.getCustomer().getName()
+        //                     + " (" + inv.getCustomer().getPhone() + ")",
+        //             normalFont
+        //     ));
+        // }
 
-        doc.add(new Paragraph("----------------------------------------------", smallFont));
+        doc.add(devidedLine);
 
-        /* ===================== GOM NHÓM CÁC MÓN ===================== */
+        /*Gom nhóm các món */
         Map<String, OrderItem> group = new LinkedHashMap<>();
 
         for (OrderItem item : order.getItems()) {
             String key = item.getMenuItem().getName() + "__" + (item.getNote() == null ? "" : item.getNote());
 
             if (!group.containsKey(key)) {
-group.put(key,
-    OrderItem.builder()
-        .id(null)
-        .order(null) // không cần order khi chỉ in bill
-        .menuItem(item.getMenuItem())
-        .unitPrice(item.getUnitPrice())
-        .quantity(item.getQuantity())
-        .lineTotal(item.getLineTotal())
-        .note(item.getNote())
-        .state(item.getState())
-        .chef(item.getChef())
-        .createdAt(item.getCreatedAt())
-        .updatedAt(item.getUpdatedAt())
-        .doneAt(item.getDoneAt())
-        .build()
-);
+                group.put(key,
+                    OrderItem.builder()
+                        .id(null)
+                        .order(null) // không cần order khi chỉ in bill
+                        .menuItem(item.getMenuItem())
+                        .unitPrice(item.getUnitPrice())
+                        .quantity(item.getQuantity())
+                        .lineTotal(item.getLineTotal())
+                        .note(item.getNote())
+                        .state(item.getState())
+                        .chef(item.getChef())
+                        .createdAt(item.getCreatedAt())
+                        .updatedAt(item.getUpdatedAt())
+                        .doneAt(item.getDoneAt())
+                        .build()
+                );
 
             } else {
                 OrderItem g = group.get(key);
@@ -523,7 +529,7 @@ group.put(key,
         }
 
         doc.add(table);
-        doc.add(new Paragraph("----------------------------------------------", smallFont));
+        doc.add(devidedLine);
 
         /* ===================== TÍNH TIỀN ===================== */
         BigDecimal subtotal = inv.getSubtotal();
@@ -531,19 +537,19 @@ group.put(key,
         BigDecimal vat = inv.getVatAmount() != null ? inv.getVatAmount() : BigDecimal.ZERO;
         BigDecimal total = inv.getTotal();
 
-        doc.add(new Paragraph(String.format("Tạm tính: %28s", MoneyUtils.format(subtotal)), normalFont));
+        doc.add(new Paragraph(String.format("TẠM TÍNH: %28s", MoneyUtils.format(subtotal)), normalFont));
 
         if (discount.compareTo(BigDecimal.ZERO) > 0)
-            doc.add(new Paragraph(String.format("Giảm giá: %29s", "-" + MoneyUtils.format(discount)), normalFont));
+            doc.add(new Paragraph(String.format("Giảm giá: %29s", MoneyUtils.format(discount)), normalFont));
 
         doc.add(new Paragraph(String.format("VAT: %34s", MoneyUtils.format(vat), normalFont)));
 
         doc.add(new Paragraph(String.format("TỔNG CỘNG: %23s", MoneyUtils.format(total)), boldFont));
 
-        doc.add(new Paragraph("----------------------------------------------", smallFont));
+        doc.add(devidedLine);
 
         /* ===================== FOOTER ===================== */
-        Paragraph thanks = new Paragraph("Cảm ơn quý khách và hẹn gặp lại! 🍣", normalFont);
+        Paragraph thanks = new Paragraph("Cảm ơn quý khách và hẹn gặp lại!", normalFont);
         thanks.setAlignment(Paragraph.ALIGN_CENTER);
         doc.add(thanks);
 

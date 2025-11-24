@@ -7,12 +7,15 @@ import com.example.restaurant.domain.inventory.RecipeIngredient;
 import com.example.restaurant.dto.menu.request.MenuItemRequest;
 // import com.example.restaurant.dto.inventory.request.RecipeItemRequest;
 import com.example.restaurant.dto.menu.response.MenuItemResponse;
+import com.example.restaurant.exception.BadRequestException;
+import com.example.restaurant.exception.NotFoundException;
 import com.example.restaurant.mapper.MenuMapper;
 import com.example.restaurant.repository.inventory.IngredientRepository;
 import com.example.restaurant.repository.inventory.RecipeIngredientRepository;
 import com.example.restaurant.repository.inventory.RecipeRepository;
 import org.springframework.data.jpa.domain.Specification;
 import com.example.restaurant.repository.menu.*;
+import com.example.restaurant.repository.order.OrderItemRepository;
 import com.example.restaurant.ws.MenuEventPublisher;
 
 import lombok.RequiredArgsConstructor;
@@ -31,6 +34,7 @@ public class MenuService {
     private final RecipeRepository recipeRepo;
     private final RecipeIngredientRepository riRepo;
     private final MenuEventPublisher menuEvents;
+    private final OrderItemRepository orderItemRepo;
 
     private static final Path UPLOAD_DIR =
         Paths.get(System.getProperty("user.dir"), "uploads", "images", "menu");
@@ -57,6 +61,8 @@ public class MenuService {
     @Transactional
     public MenuItemResponse create(MenuItemRequest req) {
         MenuCategory cat = catRepo.findById(req.getCategoryId()).orElseThrow();
+        if (menuRepo.existsByNameIgnoreCase(req.getName())) 
+                throw new IllegalArgumentException("Tên món đã tồn tại!");
         MenuItem m = MenuItem.builder()
                 .name(req.getName())
                 .description(req.getDescription())
@@ -75,6 +81,10 @@ public class MenuService {
     public MenuItemResponse update(Long id, MenuItemRequest req) {
         MenuItem m = menuRepo.findById(id).orElseThrow();
         MenuCategory cat = catRepo.findById(req.getCategoryId()).orElseThrow();
+        if (!m.getName().equalsIgnoreCase(req.getName()) 
+            && menuRepo.existsByNameIgnoreCase(req.getName())) 
+            throw new IllegalArgumentException("Tên món đã tồn tại!");
+
 
         if (req.getImageUrl() != null && !req.getImageUrl().equals(m.getImageUrl()))
             deleteOldImage(m.getImageUrl());
@@ -92,16 +102,24 @@ public class MenuService {
 
     @Transactional
     public void delete(Long id) {
-        MenuItem m = menuRepo.findById(id).orElseThrow();
+        MenuItem m = menuRepo.findById(id)
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy món."));
+
+        // 1) OrderItem dependency
+        if (orderItemRepo.existsByMenuItem_Id(id)) {
+            throw new BadRequestException("Không thể xóa món đã thuộc các đơn hàng");
+        }
+
+        // 2) Xóa ảnh
         deleteOldImage(m.getImageUrl());
 
-        recipeRepo.findByMenuItem(m).ifPresent(r -> {
-            riRepo.deleteAll(r.getIngredients());
-            recipeRepo.delete(r);
-        });
+        // 3) Xóa công thức
+        recipeRepo.findByMenuItem(m).ifPresent(recipeRepo::delete);
+
         menuRepo.delete(m);
         menuEvents.menuChanged(m, "DELETED");
     }
+
 
     // 🔹 helpers
     private void upsertRecipe(MenuItem m, MenuItemRequest req) {

@@ -1,6 +1,7 @@
 package com.example.restaurant.controller.inventory;
 
 import com.example.restaurant.dto.inventory.request.IngredientRequest;
+import com.example.restaurant.dto.inventory.request.StockInRequest;
 import com.example.restaurant.dto.inventory.response.IngredientResponse;
 import com.example.restaurant.service.inventory.IngredientService;
 import jakarta.validation.Valid;
@@ -36,4 +37,13 @@ public class IngredientController {
     public ResponseEntity<Void> delete(@PathVariable Long id){
         svc.delete(id); return ResponseEntity.noContent().build();
     }
+    
+    @PostMapping("/{id}/import")
+    public ResponseEntity<IngredientResponse> importStock(
+            @PathVariable Long id,
+            @Valid @RequestBody StockInRequest req
+    ){
+        return ResponseEntity.ok(svc.importStock(id, req));
+    }
+
 }

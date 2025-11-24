@@ -47,4 +47,11 @@ public class CustomerController {
     public ResponseEntity<List<PointHistory>> getHistories(@PathVariable Long id) {
         return ResponseEntity.ok(customerService.getHistories(id));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        customerService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }

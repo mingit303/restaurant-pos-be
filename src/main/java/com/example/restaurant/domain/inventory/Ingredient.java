@@ -21,7 +21,7 @@ public class Ingredient {
 
     private String useUnit;
 
-    private double convertRate;
+    private Double convertRate;
 
-    private double threshold;
+    private Double threshold;
 }

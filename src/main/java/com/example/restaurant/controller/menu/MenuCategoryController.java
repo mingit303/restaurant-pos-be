@@ -31,7 +31,7 @@ public class MenuCategoryController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String keyword
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
         Page<MenuCategoryResponse> result = service.getAll(pageable, keyword)
             .map(c -> new MenuCategoryResponse(c.getId(), c.getName())); // chuyển entity -> DTO
         return ResponseEntity.ok(result);

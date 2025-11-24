@@ -3,6 +3,7 @@ package com.example.restaurant.service.user;
 import com.example.restaurant.domain.user.*;
 import com.example.restaurant.dto.user.Request.UserUpdateRequest;
 import com.example.restaurant.dto.user.Response.UserResponse;
+import com.example.restaurant.exception.NotFoundException;
 import com.example.restaurant.repository.employee.EmployeeRepository;
 import com.example.restaurant.repository.user.*;
 
@@ -68,17 +69,18 @@ public class UserService {
 
     @Transactional
     public void delete(Long id) {
-        User user = userRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
+        User u = userRepo.findById(id)
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy user."));
 
-        // Set null user_id bên employee (nếu có)
-        employeeRepo.findByUser(user).ifPresent(emp -> {
+        // Nếu user có employee → employee bị check ở EmployeeService
+        employeeRepo.findByUser(u).ifPresent(emp -> {
             emp.setUser(null);
             employeeRepo.save(emp);
         });
 
-        userRepo.delete(user);
+        userRepo.delete(u);
     }
+
     
     // ✅ TÌM KIẾM VÀ LỌC AN TOÀN
     // @Transactional(readOnly = true)

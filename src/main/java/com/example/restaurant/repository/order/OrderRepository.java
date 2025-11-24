@@ -6,7 +6,6 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import java.util.*;
-import java.util.List;
 
 
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
@@ -19,4 +18,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @Query("SELECT o.status FROM Order o WHERE o.id = :id")
     OrderStatus findStatusById(@Param("id") Long id);
     List<Order> findByStatus(OrderStatus status);
+    boolean existsByWaiter_Id(Long waiterId);
+boolean existsByTable_Id(Long tableId);
+
 }

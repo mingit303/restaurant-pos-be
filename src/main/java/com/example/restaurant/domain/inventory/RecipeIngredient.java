@@ -17,5 +17,5 @@ public class RecipeIngredient {
     private Ingredient ingredient;
 
     @Column(nullable = false)
-    private double quantity;
+    private Double quantity;
 }

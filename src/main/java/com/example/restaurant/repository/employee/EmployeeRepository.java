@@ -22,7 +22,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
         SELECT e FROM Employee e
         LEFT JOIN e.user u
         WHERE
-          (:keyword IS NULL OR LOWER(e.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        u.role.name <> 'ROLE_ADMIN' 
+          AND (:keyword IS NULL OR LOWER(e.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')))
           AND (:gender IS NULL OR e.gender = :gender)
           AND (:role IS NULL OR u.role.name = :role)
     """)

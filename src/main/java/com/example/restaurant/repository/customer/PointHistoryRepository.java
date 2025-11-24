@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface PointHistoryRepository extends JpaRepository<PointHistory, Long> {
     List<PointHistory> findByCustomerIdOrderByCreatedAtDesc(Long customerId);
+    boolean existsByCustomer_Id(Long id);
+
 }

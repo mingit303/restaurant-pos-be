@@ -52,10 +52,10 @@ public class AdminStatisticsService {
     }
 
     private void fillSummary(Map<String, Object> result, List<com.example.restaurant.domain.invoice.Invoice> list) {
-        // 🧾 Tổng số hóa đơn
+        // Tổng số hóa đơn
         result.put("invoiceCount", list.size());
 
-        // 🧮 Tổng doanh thu trước VAT (subtotal - discount)
+        // Tổng doanh thu trước VAT (subtotal - discount)
         BigDecimal totalBeforeVat = list.stream()
                 .map(i -> {
                     BigDecimal subtotal = i.getSubtotal() != null ? i.getSubtotal() : BigDecimal.ZERO;
@@ -64,20 +64,20 @@ public class AdminStatisticsService {
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 💸 Tổng VAT
+        // Tổng VAT
         BigDecimal totalVat = list.stream()
                 .map(i -> i.getVatAmount() != null ? i.getVatAmount() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 💰 Doanh thu sau VAT
+        // Doanh thu sau VAT
         BigDecimal totalAfterVat = totalBeforeVat.add(totalVat);
 
-        // 🪙 Tổng giảm giá
+        // Tổng giảm giá
         BigDecimal totalDiscount = list.stream()
                 .map(i -> i.getDiscount() != null ? i.getDiscount() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 💵 Tiền mặt (CASH)
+        // Tiền mặt (CASH)
         BigDecimal cashBeforeVat = list.stream()
                 .filter(i -> i.getPaymentMethod() != null && i.getPaymentMethod().name().equals("CASH"))
                 .map(i -> {
@@ -92,7 +92,7 @@ public class AdminStatisticsService {
                 .map(i -> i.getVatAmount() != null ? i.getVatAmount() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 💳 VNPAY
+        // VNPAY
         BigDecimal vnpBeforeVat = list.stream()
                 .filter(i -> i.getPaymentMethod() != null && i.getPaymentMethod().name().equals("VNPAY"))
                 .map(i -> {
@@ -107,7 +107,7 @@ public class AdminStatisticsService {
                 .map(i -> i.getVatAmount() != null ? i.getVatAmount() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // ✅ Ghi kết quả vào map
+        // Ghi kết quả vào map
         result.put("totalBeforeVat", totalBeforeVat);
         result.put("totalVat", totalVat);
         result.put("totalAfterVat", totalAfterVat);

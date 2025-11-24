@@ -65,10 +65,11 @@ public class EmployeeController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
-        return ResponseEntity.ok("Đã xóa nhân viên và tài khoản tương ứng!");
+        return ResponseEntity.noContent().build();
     }
+
 
     @PostMapping("/{id}/avatar")
     public ResponseEntity<EmployeeResponse> uploadAvatar(
@@ -76,4 +77,6 @@ public class EmployeeController {
             @RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(service.uploadAvatar(id, file));
     }
+
+    
 }

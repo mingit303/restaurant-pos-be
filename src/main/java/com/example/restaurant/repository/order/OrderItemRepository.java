@@ -60,5 +60,9 @@ List<Map<String, Object>> findTopSelling(@Param("month") Integer month, @Param("
 """)
 List<Map<String, Object>> findLeastSelling(@Param("month") Integer month, @Param("year") Integer year);
 
+boolean existsByMenuItem_Id(Long id);
+
+List<OrderItem> findTop10ByMenuItem_Id(Long id);
+boolean existsByChef_Id(Long chefId);
 
 }

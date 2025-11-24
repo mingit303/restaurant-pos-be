@@ -24,9 +24,6 @@ public class MenuItemResponse {
         private Double convertRate;
         private Double threshold;
         
-
-
-
         public RecipeIngredientDto() {}
 
         // Constructor đầy đủ — khớp với MenuMapper

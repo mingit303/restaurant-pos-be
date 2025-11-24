@@ -60,5 +60,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
         AND DATE(i.paidAt) = CURRENT_DATE
     """)
     BigDecimal sumRevenueToday();
+boolean existsByCashier_Id(Long cashierId);
+boolean existsByCustomer_Id(Long customerId);
+boolean existsByVoucher_Id(Long voucherId);
 
 }

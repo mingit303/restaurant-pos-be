@@ -11,4 +11,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
     Page<Ingredient> findByNameContainingIgnoreCase(String keyword, Pageable pageable);
     Optional<Ingredient> findByNameIgnoreCase(String name);
+    boolean existsByNameIgnoreCase(String name);
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
 }

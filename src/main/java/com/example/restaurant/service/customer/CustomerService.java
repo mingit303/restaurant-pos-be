@@ -5,6 +5,8 @@ import com.example.restaurant.domain.customer.PointHistory;
 import com.example.restaurant.dto.customer.CustomerResponse;
 import com.example.restaurant.repository.customer.CustomerRepository;
 import com.example.restaurant.repository.customer.PointHistoryRepository;
+import com.example.restaurant.repository.invoice.InvoiceRepository;
+import com.example.restaurant.exception.BadRequestException;
 import com.example.restaurant.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ public class CustomerService {
 
     private final CustomerRepository customerRepo;
     private final PointHistoryRepository historyRepo;
+    private final InvoiceRepository invoiceRepo;
 
     @Transactional
     public Customer getOrCreateCustomer(String phone, String name) {
@@ -77,4 +80,21 @@ public class CustomerService {
         return customerRepo.findById(id)
             .orElseThrow(() -> new NotFoundException("Không tìm thấy khách hàng"));
     }
+
+    @Transactional
+    public void delete(Long id) {
+        Customer c = customerRepo.findById(id)
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy khách hàng."));
+
+        if (invoiceRepo.existsByCustomer_Id(id)) {
+            throw new BadRequestException("Không thể xóa. Khách hàng đã có hóa đơn.");
+        }
+
+        if (historyRepo.existsByCustomer_Id(id)) {
+            throw new BadRequestException("Không thể xóa. Khách hàng đã có lịch sử tích điểm.");
+        }
+
+        customerRepo.delete(c);
+    }
+
 }

@@ -8,7 +8,8 @@
     import com.example.restaurant.exception.ConflictException;
     import com.example.restaurant.exception.NotFoundException;
     import com.example.restaurant.mapper.VoucherMapper;
-    import com.example.restaurant.repository.voucher.VoucherRepository;
+import com.example.restaurant.repository.invoice.InvoiceRepository;
+import com.example.restaurant.repository.voucher.VoucherRepository;
     import lombok.RequiredArgsConstructor;
     import org.springframework.data.domain.*;
     import org.springframework.stereotype.Service;
@@ -19,8 +20,9 @@
 import java.util.List;
 
     @Service @RequiredArgsConstructor
-    public class VoucherService {
-        private final VoucherRepository repo;
+public class VoucherService {
+    private final VoucherRepository repo;
+    private final InvoiceRepository invoiceRepo;
 
     @Transactional(readOnly = true)
     public Page<VoucherResponse> search(int page, int size, String keyword, Boolean active, LocalDate from, LocalDate to) {
@@ -76,8 +78,14 @@ import java.util.List;
         }
 
         @Transactional
-        public void delete(Long id){
-            Voucher v = repo.findById(id).orElseThrow(() -> new NotFoundException("Không tìm thấy voucher."));
+        public void delete(Long id) {
+            Voucher v = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy voucher."));
+
+            if (invoiceRepo.existsByVoucher_Id(id)) {
+                throw new BadRequestException("Không thể xóa voucher đã được sử dụng.");
+            }
+
             repo.delete(v);
         }
 

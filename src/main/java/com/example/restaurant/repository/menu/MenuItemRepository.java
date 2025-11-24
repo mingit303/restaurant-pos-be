@@ -10,4 +10,6 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long>, JpaSp
     Page<MenuItem> findByNameContainingIgnoreCase(String keyword, Pageable pageable);
     Page<MenuItem> findByCategoryId(Long categoryId, Pageable pageable);
     Page<MenuItem> findByCategoryIdAndNameContainingIgnoreCase(Long categoryId, String keyword, Pageable pageable);
+    boolean existsByNameIgnoreCase(String name);
+    boolean existsByCategory_Id(Long ingredientId);
 }

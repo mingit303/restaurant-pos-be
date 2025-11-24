@@ -21,10 +21,19 @@ public class PointHistory {
     @Column(name = "point_change")
     private int changeAmount;
     private String description;
+    @Column(name = "created_at")   
     private LocalDateTime createdAt;
+    @Column(name = "updated_at")   
+    private LocalDateTime updatedAt;
 
     @PrePersist
     public void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

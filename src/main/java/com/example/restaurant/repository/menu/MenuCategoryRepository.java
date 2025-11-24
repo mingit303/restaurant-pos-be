@@ -9,4 +9,5 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface MenuCategoryRepository extends JpaRepository<MenuCategory, Long>,JpaSpecificationExecutor<MenuCategory>  {
     boolean existsByName(String name);
     Optional<MenuCategory> findByNameIgnoreCase(String name);
+    boolean existsByNameIgnoreCase(String name);
 }

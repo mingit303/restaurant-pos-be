@@ -13,8 +13,4 @@ public class MenuCategory {
 
     @Column(nullable = false, unique = true)
     private String name;
-
-    // @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
-    // @Builder.Default 
-    // private List<MenuItem> items = new ArrayList<>();
 }

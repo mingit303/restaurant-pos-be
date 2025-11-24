@@ -41,10 +41,11 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
-        return ResponseEntity.ok("Đã xóa tài khoản, nhân viên giữ nguyên!");
+        return ResponseEntity.noContent().build();
     }
+
 
     @GetMapping("/search")
     public ResponseEntity<Map<String, Object>> searchUsers(

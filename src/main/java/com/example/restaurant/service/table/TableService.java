@@ -6,6 +6,7 @@ import com.example.restaurant.dto.table.request.CreateTableRequest;
 import com.example.restaurant.dto.table.request.UpdateTableRequest;
 import com.example.restaurant.dto.table.response.TableResponse;
 import com.example.restaurant.exception.*;
+import com.example.restaurant.repository.order.OrderRepository;
 import com.example.restaurant.repository.table.RestaurantTableRepository;
 import com.example.restaurant.ws.TableEventPublisher;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class TableService {
 
     private final RestaurantTableRepository tableRepo;
     private final TableEventPublisher tableEvents;
+    private final OrderRepository orderRepo;
 
     /** 🧾 Lấy toàn bộ bàn */
     @Transactional(readOnly = true)
@@ -88,13 +90,19 @@ public class TableService {
         return res;
     }
 
-    /** ❌ Xóa bàn */
     @Transactional
     public void delete(Long id) {
-        var t = tableRepo.findById(id).orElseThrow(() -> new NotFoundException("Không tìm thấy bàn."));
+        RestaurantTable t = tableRepo.findById(id)
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn."));
+
+        if (orderRepo.existsByTable_Id(id)) {
+            throw new BadRequestException("Không thể xóa. Bàn đã từng có order, không được phép xóa.");
+        }
+
         tableRepo.delete(t);
-        tableEvents.tableDeleted(t.getId(), t.getCode());
+        tableEvents.tableDeleted(id, t.getCode());
     }
+
 
 
     @Transactional(readOnly = true)
