@@ -44,10 +44,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
             if (jwtUtils.isTokenValid(token, userDetails)) {
-                // 🟢 Lấy role từ token
+                // Lấy role từ token
                 String role = jwtUtils.extractRole(token);
 
-                // 🟢 Gắn vào SecurityContext
+                // Gắn vào SecurityContext
                 var authorities = (role != null && !role.isBlank())
                         ? List.of(new SimpleGrantedAuthority(role))
                         : userDetails.getAuthorities();

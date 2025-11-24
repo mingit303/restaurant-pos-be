@@ -1,10 +1,12 @@
 package com.example.restaurant.dto.voucher.request;
 
 import jakarta.validation.constraints.*;
+import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+@Data
 public class VoucherRequest {
     @NotBlank @Size(max = 50)
     private String code;
@@ -25,14 +27,4 @@ public class VoucherRequest {
     private Integer usageLimit; // nullable
 
     private Boolean active; // nullable
-
-    // getters/setters
-    public String getCode(){return code;} public void setCode(String v){this.code=v;}
-    public String getDescription(){return description;} public void setDescription(String v){this.description=v;}
-    public BigDecimal getDiscountPercent(){return discountPercent;} public void setDiscountPercent(BigDecimal v){this.discountPercent=v;}
-    public BigDecimal getMaxDiscount(){return maxDiscount;} public void setMaxDiscount(BigDecimal v){this.maxDiscount=v;}
-    public LocalDate getStartDate(){return startDate;} public void setStartDate(LocalDate v){this.startDate=v;}
-    public LocalDate getEndDate(){return endDate;} public void setEndDate(LocalDate v){this.endDate=v;}
-    public Integer getUsageLimit(){return usageLimit;} public void setUsageLimit(Integer v){this.usageLimit=v;}
-    public Boolean getActive(){return active;} public void setActive(Boolean v){this.active=v;}
 }

@@ -14,9 +14,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Gửi sự kiện WebSocket cho FE khi Order có thay đổi (order mới, thêm món, bếp cập nhật...)
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -24,9 +21,7 @@ public class OrderEventPublisher {
 
     private final SimpMessagingTemplate ws;
 
-    /** 📡 Hàm gửi dữ liệu WS ra FE */
     private void send(String topic, Object payload) {
-        log.info("📡 WS -> {} : {}", topic, payload);
         ws.convertAndSend(topic, payload);
     }
 
@@ -40,12 +35,12 @@ public class OrderEventPublisher {
             payload.put("timestamp", LocalDateTime.now().toString());
             send("/topic/orders", payload);
         } catch (Exception e) {
-            log.error("❌ Error sending orderChanged WS: {}", e.getMessage(), e);
+            log.error("Error sending orderChanged WS: {}", e.getMessage(), e);
             send("/topic/orders", Map.of("action", "ERROR", "data", "[FAILED to convert Order to DTO]"));
         }
     }
 
-    /** 🔔 Khi một món trong Order thay đổi (ví dụ bếp cập nhật trạng thái món) */
+    // Khi một món trong Order thay đổi (ví dụ bếp cập nhật trạng thái món)
     public void orderItemChanged(OrderItem item, String action) {
         try {
             OrderResponse dto = OrderMapper.toResponse(item.getOrder());
@@ -56,7 +51,7 @@ public class OrderEventPublisher {
             payload.put("timestamp", LocalDateTime.now().toString());
             send("/topic/orders", payload);
         } catch (Exception e) {
-            log.error("❌ Error sending orderItemChanged WS: {}", e.getMessage(), e);
+            log.error("Error sending orderItemChanged WS: {}", e.getMessage(), e);
             send("/topic/orders", Map.of("action", "ERROR", "data", "[FAILED to convert OrderItem to DTO]"));
         }
     }

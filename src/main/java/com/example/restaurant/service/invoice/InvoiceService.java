@@ -3,7 +3,6 @@ package com.example.restaurant.service.invoice;
 import com.example.restaurant.domain.invoice.*;
 import com.example.restaurant.domain.order.*;
 import com.example.restaurant.domain.table.*;
-// import com.example.restaurant.domain.user.User;
 import com.example.restaurant.domain.voucher.Voucher;
 import com.example.restaurant.dto.invoice.request.CreateInvoiceRequest;
 import com.example.restaurant.dto.invoice.response.InvoiceResponse;
@@ -45,8 +44,7 @@ import com.lowagie.text.PageSize;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
-// import com.lowagie.text.pdf.PdfPTable;
-// import com.lowagie.text.pdf.PdfWriter;
+
 import java.io.ByteArrayOutputStream;
 @Service
 @RequiredArgsConstructor
@@ -105,7 +103,7 @@ public class InvoiceService {
             invoice.setCustomer(customer);
         }
 
-        // ✅ 1️⃣ Áp dụng voucher trước
+        // Áp dụng voucher trước
         if (req.getVoucherCode() != null && !req.getVoucherCode().isBlank()) {
             Voucher v = voucherRepo.findByCodeIgnoreCase(req.getVoucherCode())
                     .orElseThrow(() -> new NotFoundException("Voucher không tồn tại."));
@@ -124,7 +122,7 @@ public class InvoiceService {
             invoice.setDiscount(BigDecimal.ZERO);
         }
 
-        // ✅ 2️⃣ Sau đó mới xử lý dùng điểm
+        // Xử lý dùng điểm
         if (customer != null && req.getRedeemPoints() != null && req.getRedeemPoints() > 0) {
             int redeem = req.getRedeemPoints();
             BigDecimal redeemValue = BigDecimal.valueOf(redeem * 1000L); // 1 điểm = 1000đ
@@ -143,7 +141,7 @@ public class InvoiceService {
             invoice.setDiscount(invoice.getDiscount().add(redeemValue)); // Cộng thêm vào tổng discount
         }
 
-        // ✅ 3️⃣ Cuối cùng: tính tổng sau VAT
+        // Tính tổng sau VAT
         BigDecimal afterDiscount = invoice.getSubtotal().subtract(invoice.getDiscount());
         BigDecimal vatAmount = afterDiscount
         .multiply(invoice.getVatRate())
@@ -152,7 +150,7 @@ public class InvoiceService {
         invoice.setTotal(afterDiscount.add(vatAmount));
 
 
-        // ✅ Nếu là VNPAY → xử lý riêng
+        // Nếu là VNPAY
         if (method == PaymentMethod.VNPAY) {
             String txnRef = "INV" + System.currentTimeMillis();
             invoice.setTransactionRef(txnRef);
@@ -175,7 +173,7 @@ public class InvoiceService {
                 );
         }
 
-        // ✅ SAVE trước rồi mới broadcast
+        // Save trước rồi mới broadcast
         Invoice saved = invoiceRepo.save(invoice);
         invoiceEvents.invoiceChanged(saved, "CREATED");
 
@@ -183,7 +181,7 @@ public class InvoiceService {
     }
 
 
-    /** ✅ Tạo link redirect VNPAY (chuẩn sandbox 2025, fix “Sai chữ ký”) */
+    // Tạo link redirect VNPAY 
    private String createVnpayUrl(Invoice invoice) {
     try {
         Map<String, String> vnp_Params = new HashMap<>();
@@ -207,7 +205,7 @@ public class InvoiceService {
         cld.add(Calendar.MINUTE, 15);
         vnp_Params.put("vnp_ExpireDate", formatter.format(cld.getTime()));
 
-        // ✅ Build hashData và query (chuẩn theo JSP demo)
+        // Build hashData và query
         List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
         Collections.sort(fieldNames);
         StringBuilder hashData = new StringBuilder();
@@ -233,15 +231,6 @@ public class InvoiceService {
         query.append("&vnp_SecureHash=").append(vnp_SecureHash);
 
         String paymentUrl = vnp_PayUrl + "?" + query;
-
-        // Log để debug
-        System.out.println("===== 🔍 VNPAY DEBUG =====");
-        System.out.println("🧾 Hash Data: " + hashData);
-        System.out.println("🔑 Hash Secret: " + vnp_HashSecret);
-        System.out.println("📦 SecureHash: " + vnp_SecureHash);
-        System.out.println("🔗 Payment URL: " + paymentUrl);
-        System.out.println("==========================");
-
         return paymentUrl;
     } catch (Exception e) {
         throw new RuntimeException("Không tạo được URL VNPAY: " + e.getMessage());
@@ -249,7 +238,7 @@ public class InvoiceService {
 }
 
 
-    /** Xác nhận thanh toán tiền mặt */
+    // Xác nhận thanh toán tiền mặt 
     @Transactional
     public InvoiceResponse confirmCash(Long id) {
         Invoice inv = invoiceRepo.findById(id)
@@ -277,7 +266,7 @@ public class InvoiceService {
         return map(inv);
     }
 
-    /** Callback từ VNPAY */
+    // Callback từ VNPAY 
     @Transactional
     public String handleVnpayReturn(Map<String, String> params) {
         String ref = params.get("vnp_TxnRef");
@@ -286,7 +275,7 @@ public class InvoiceService {
         if (opt.isEmpty()) return "error";
         Invoice inv = opt.get();
 
-        if ("00".equals(responseCode)) { // ✅ success
+        if ("00".equals(responseCode)) {
             inv.setStatus(InvoiceStatus.PAID);
             inv.setTransactionNo(params.get("vnp_TransactionNo"));
             inv.setPaidAt(LocalDateTime.now());
@@ -416,11 +405,10 @@ public byte[] generateInvoicePdf(Long id) {
     Order order = inv.getOrder();
 
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-        Document doc = new Document(PageSize.A5, 25, 25, 20, 20); // A5 + margin đẹp
+        Document doc = new Document(PageSize.A5, 25, 25, 20, 20);
         PdfWriter.getInstance(doc, baos);
         doc.open();
 
-        /* ===================== LOGO ===================== */
         try {
             Image logo = Image.getInstance("uploads/images/logo/logo.png");
             logo.scaleToFit(90, 90);
@@ -436,7 +424,6 @@ public byte[] generateInvoicePdf(Long id) {
         Font normalFont = new Font(Font.HELVETICA, 11);
         Font smallFont = new Font(Font.HELVETICA, 9);
 
-        /* ===================== HEADER ===================== */
         Paragraph header = new Paragraph("Mikado Sushi Restaurant", titleFont);
         header.setAlignment(Paragraph.ALIGN_CENTER);
         doc.add(header);
@@ -452,7 +439,7 @@ public byte[] generateInvoicePdf(Long id) {
         devidedLine.setAlignment(Paragraph.ALIGN_CENTER);
         doc.add(devidedLine);
 
-        /* ===================== THÔNG TIN HÓA ĐƠN ===================== */
+
         Paragraph title = new Paragraph("HÓA ĐƠN THANH TOÁN", boldFont);
         title.setAlignment(Paragraph.ALIGN_CENTER);
         doc.add(title);
@@ -478,7 +465,7 @@ public byte[] generateInvoicePdf(Long id) {
 
         doc.add(devidedLine);
 
-        /*Gom nhóm các món */
+        //Gom nhóm các món
         Map<String, OrderItem> group = new LinkedHashMap<>();
 
         for (OrderItem item : order.getItems()) {
@@ -488,7 +475,7 @@ public byte[] generateInvoicePdf(Long id) {
                 group.put(key,
                     OrderItem.builder()
                         .id(null)
-                        .order(null) // không cần order khi chỉ in bill
+                        .order(null) 
                         .menuItem(item.getMenuItem())
                         .unitPrice(item.getUnitPrice())
                         .quantity(item.getQuantity())
@@ -509,7 +496,6 @@ public byte[] generateInvoicePdf(Long id) {
             }
         }
 
-        /* ===================== TABLE ===================== */
         PdfPTable table = new PdfPTable(new float[]{3, 1, 2, 2});
         table.setWidthPercentage(100);
 
@@ -531,7 +517,6 @@ public byte[] generateInvoicePdf(Long id) {
         doc.add(table);
         doc.add(devidedLine);
 
-        /* ===================== TÍNH TIỀN ===================== */
         BigDecimal subtotal = inv.getSubtotal();
         BigDecimal discount = inv.getDiscount() != null ? inv.getDiscount() : BigDecimal.ZERO;
         BigDecimal vat = inv.getVatAmount() != null ? inv.getVatAmount() : BigDecimal.ZERO;
@@ -548,7 +533,6 @@ public byte[] generateInvoicePdf(Long id) {
 
         doc.add(devidedLine);
 
-        /* ===================== FOOTER ===================== */
         Paragraph thanks = new Paragraph("Cảm ơn quý khách và hẹn gặp lại!", normalFont);
         thanks.setAlignment(Paragraph.ALIGN_CENTER);
         doc.add(thanks);
@@ -586,7 +570,7 @@ public byte[] generateInvoicePdf(Long id) {
         return calculateSummary(invoices, "Năm " + year);
     }
 
-    /** Hàm dùng chung */
+    // Hàm dùng chung 
     private Map<String, Object> calculateSummary(List<Invoice> invoices, String title) {
         BigDecimal totalRevenue = invoices.stream()
             .map(Invoice::getTotal)

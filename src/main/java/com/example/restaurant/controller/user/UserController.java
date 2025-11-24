@@ -21,19 +21,19 @@ public class UserController {
         this.service = service;
     }
 
-    // 🔹 Lấy danh sách user (ADMIN)
+    //  Lấy danh sách user (ADMIN)
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
-    // 🔹 Cập nhật role hoặc status (ADMIN)
+    // Cập nhật role hoặc status (ADMIN)
     @PatchMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UserUpdateRequest req) {
         return ResponseEntity.ok(service.updateUser(id, req));
     }
 
-    // 🔹 ADMIN đặt lại mật khẩu cho nhân viên
+    // ADMIN đặt lại mật khẩu cho nhân viên
     @PatchMapping("/{id}/reset-password")
     public ResponseEntity<String> resetPassword(@PathVariable Long id, @RequestBody ResetPasswordRequest req) {
         service.resetPassword(id, req.getNewPassword());

@@ -6,9 +6,6 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import java.util.Map;
 
-/**
- * 🔔 Gửi sự kiện hóa đơn realtime qua WebSocket
- */
 @Component
 @RequiredArgsConstructor
 public class InvoiceEventPublisher {
@@ -25,7 +22,5 @@ public class InvoiceEventPublisher {
 
         // Gửi đến topic riêng cho cashier
         messagingTemplate.convertAndSend("/topic/invoices", payload);
-
-        System.out.println("📡 [InvoiceEvent] /topic/invoices -> " + payload);
     }
 }

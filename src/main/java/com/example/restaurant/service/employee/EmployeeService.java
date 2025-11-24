@@ -37,16 +37,6 @@ public class EmployeeService {
     // Thư mục lưu file thực tế
     private static final String UPLOAD_PATH = "uploads/images/avatars/";
 
-    // public EmployeeService(EmployeeRepository e, UserRepository u, RoleRepository r, PasswordEncoder encoder) {
-    //     this.employeeRepo = e;
-    //     this.userRepo = u;
-    //     this.roleRepo = r;
-    //     this.encoder = encoder;
-    // }
-
-    /* ============================================================
-       Helpers
-       ============================================================ */
 
     private boolean isDefaultAvatar(String url) {
         return url == null || url.endsWith("default-avatar.png");
@@ -68,9 +58,6 @@ public class EmployeeService {
         return url.substring(url.lastIndexOf("/") + 1);
     }
 
-    /* ============================================================
-       CRUD
-       ============================================================ */
 
     @Transactional(readOnly = true)
     public List<EmployeeResponse> getAll() {
@@ -148,54 +135,49 @@ public class EmployeeService {
         return EmployeeResponse.fromEntity(e);
     }
 
-    /* ============================================================
-       DELETE (có xóa avatar nếu không phải default)
-       ============================================================ */
-@Transactional
-public void delete(Long id) {
 
-    Employee e = employeeRepo.findById(id)
-        .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên."));
+    @Transactional
+    public void delete(Long id) {
 
-    // Waiter → Order
-    if (orderRepo.existsByWaiter_Id(id)) {
-        throw new BadRequestException("Không thể xóa. Nhân viên đã phục vụ các order.");
-    }
+        Employee e = employeeRepo.findById(id)
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên."));
 
-    // Chef → OrderItem
-    if (orderItemRepo.existsByChef_Id(id)) {
-        throw new BadRequestException("Không thể xóa. Nhân viên đã nấu món trong đơn món.");
-    }
-
-    // Cashier → Invoice
-    if (invoiceRepo.existsByCashier_Id(id)) {
-        throw new BadRequestException("Không thể xóa. Nhân viên đã thu ngân hóa đơn.");
-    }
-
-    // Xóa avatar file
-    String avatar = e.getAvatarUrl();
-
-    if (isStoredAvatar(avatar) && !isDefaultAvatar(avatar)) {
-        try {
-            Path filePath = Paths.get(UPLOAD_PATH + fileNameFromUrl(avatar));
-            Files.deleteIfExists(filePath);
-        } catch (Exception ex) {
-            System.out.println("Không thể xóa avatar cũ: " + ex.getMessage());
+        // Waiter → Order
+        if (orderRepo.existsByWaiter_Id(id)) {
+            throw new BadRequestException("Không thể xóa. Nhân viên đã phục vụ các order.");
         }
+
+        // Chef → OrderItem
+        if (orderItemRepo.existsByChef_Id(id)) {
+            throw new BadRequestException("Không thể xóa. Nhân viên đã nấu món trong đơn món.");
+        }
+
+        // Cashier → Invoice
+        if (invoiceRepo.existsByCashier_Id(id)) {
+            throw new BadRequestException("Không thể xóa. Nhân viên đã thu ngân hóa đơn.");
+        }
+
+        // Xóa avatar file
+        String avatar = e.getAvatarUrl();
+
+        if (isStoredAvatar(avatar) && !isDefaultAvatar(avatar)) {
+            try {
+                Path filePath = Paths.get(UPLOAD_PATH + fileNameFromUrl(avatar));
+                Files.deleteIfExists(filePath);
+            } catch (Exception ex) {
+                System.out.println("Không thể xóa avatar cũ: " + ex.getMessage());
+            }
+        }
+
+        // Xóa User nếu có
+        if (e.getUser() != null) {
+            userRepo.delete(e.getUser());
+        }
+
+        employeeRepo.delete(e);
     }
 
-    // Xóa User nếu có
-    if (e.getUser() != null) {
-        userRepo.delete(e.getUser());
-    }
 
-    employeeRepo.delete(e);
-}
-
-
-    /* ============================================================
-       SEARCH
-       ============================================================ */
 
     @Transactional(readOnly = true)
     public Map<String, Object> searchEmployees(String keyword, String gender, String role, int page, int size) {
@@ -216,9 +198,6 @@ public void delete(Long id) {
         return result;
     }
 
-    /* ============================================================
-       UPLOAD AVATAR
-       ============================================================ */
 
     @Transactional
     public EmployeeResponse uploadAvatar(Long id, MultipartFile file) {

@@ -1,4 +1,3 @@
-// repository/order/OrderRepository.java
 package com.example.restaurant.repository.order;
 
 import com.example.restaurant.domain.order.*;
@@ -19,6 +18,6 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     OrderStatus findStatusById(@Param("id") Long id);
     List<Order> findByStatus(OrderStatus status);
     boolean existsByWaiter_Id(Long waiterId);
-boolean existsByTable_Id(Long tableId);
+    boolean existsByTable_Id(Long tableId);
 
 }

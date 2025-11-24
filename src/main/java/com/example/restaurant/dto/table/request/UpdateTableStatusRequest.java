@@ -1,7 +1,9 @@
 package com.example.restaurant.dto.table.request;
 
 import jakarta.validation.constraints.*;
+import lombok.Data;
 
+@Data
 public class UpdateTableStatusRequest {
 
     @NotBlank
@@ -12,7 +14,4 @@ public class UpdateTableStatusRequest {
     public UpdateTableStatusRequest(String status) {
         this.status = status;
     }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
 }

@@ -28,7 +28,7 @@ public class TableService {
     private final TableEventPublisher tableEvents;
     private final OrderRepository orderRepo;
 
-    /** 🧾 Lấy toàn bộ bàn */
+    // Lấy toàn bộ bàn 
     @Transactional(readOnly = true)
     public List<TableResponse> getAll() {
         return tableRepo.findAll().stream()
@@ -36,7 +36,7 @@ public class TableService {
                 .toList();
     }
 
-    /** 🪑 Cập nhật trạng thái bàn (Admin/Waiter/Cashier) */
+    //Cập nhật trạng thái bàn (Admin/Waiter/Cashier) 
     @Transactional
     public TableResponse updateStatus(Long id, String status) {
         RestaurantTable table = tableRepo.findByIdForUpdate(id)
@@ -53,7 +53,7 @@ public class TableService {
         return res;
     }
 
-    /** 🆕 Tạo bàn mới */
+    // Tạo bàn mới
     @Transactional
     public TableResponse create(CreateTableRequest req) {
         if (tableRepo.existsByCode(req.getCode())) {
@@ -72,7 +72,7 @@ public class TableService {
         return res;
     }
 
-    /** ✏️ Cập nhật thông tin bàn */
+    // Cập nhật thông tin bàn
     @Transactional
     public TableResponse update(Long id, UpdateTableRequest req) {
         RestaurantTable t = tableRepo.findById(id)

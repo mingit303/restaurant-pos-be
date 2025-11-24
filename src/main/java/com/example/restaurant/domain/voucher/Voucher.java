@@ -15,31 +15,31 @@ public class Voucher {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Mã voucher (duy nhất, không phân biệt hoa thường) */
+    //Mã voucher (duy nhất, không phân biệt hoa thường) 
     @Column(nullable = false, unique = true, length = 50)
     private String code;
 
     private String description;
 
-    /** % giảm (0–100) */
+    // % giảm (0–100) 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal discountPercent;
 
-    /** Giảm tối đa (VND), có thể null = không giới hạn */
+    // Giảm tối đa (VND), có thể null = không giới hạn 
     @Column(precision = 18, scale = 2)
     private BigDecimal maxDiscount;
 
     private LocalDate startDate;
     private LocalDate endDate;
 
-    /** Giới hạn lượt dùng (null = không giới hạn) */
+    // Giới hạn lượt dùng (null = không giới hạn) 
     private Integer usageLimit;
 
-    /** Số lượt đã dùng */
+    // Số lượt đã dùng 
     @Builder.Default
     private Integer usedCount = 0;
 
-    /** Đang kích hoạt hay không */
+    // Đang kích hoạt hay không 
     @Builder.Default
     private boolean active = true;
 }

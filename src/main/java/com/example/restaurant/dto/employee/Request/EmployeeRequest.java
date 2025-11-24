@@ -33,8 +33,6 @@ public class EmployeeRequest {
     private String phone;
     private String position;
 
-    // Dành cho user
-
     @NotBlank(message = "Tên đăng nhập không được để trống")
     private String username;
 

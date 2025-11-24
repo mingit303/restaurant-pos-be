@@ -83,7 +83,7 @@ public class GlobalExceptionHandler {
     }
 
 
-    // Helper method để tránh lặp code
+    // Helper method
     private ErrorResponse buildError(HttpStatus status, String message, String path) {
         return ErrorResponse.builder()
                 .status(status.value())

@@ -2,6 +2,9 @@ package com.example.restaurant.dto.table.response;
 
 import com.example.restaurant.domain.table.TableStatus;
 
+import lombok.Data;
+
+@Data
 public class TableResponse {
 
     private Long id;
@@ -17,13 +20,4 @@ public class TableResponse {
         this.capacity = capacity;
         this.status = status;
     }
-    // Getters & Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
-    public Integer getCapacity() { return capacity; }
-    public void setCapacity(Integer capacity) { this.capacity = capacity; }
-    public TableStatus getStatus() { return status; }
-    public void setStatus(TableStatus status) { this.status = status; }
 }

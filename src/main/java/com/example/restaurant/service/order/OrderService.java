@@ -49,7 +49,7 @@ public class OrderService {
         RestaurantTable table = tableRepo.findByIdForUpdate(req.getTableId())
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy bàn."));
 
-        // ✅ Nếu bàn OCCUPIED nhưng không còn order hoạt động, tự reset lại
+        // Nếu bàn OCCUPIED nhưng không còn order hoạt động, tự reset lại
         boolean hasActive = orderRepo.existsByTableIdAndStatusIn(
                 table.getId(), List.of(OrderStatus.PENDING, OrderStatus.CONFIRMED)
         );
@@ -58,17 +58,17 @@ public class OrderService {
             tableRepo.save(table);
         }
 
-        // 🧱 Nếu sau khi kiểm tra mà vẫn có order active -> chặn
+        // Nếu sau khi kiểm tra mà vẫn có order active thì chặn
         if (hasActive)
             throw new BadRequestException("Bàn đã có order đang phục vụ.");
 
-        // 🧾 Lấy nhân viên phục vụ
+        // Lấy nhân viên phục vụ
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
         Employee waiter = employeeRepo.findByUserUsername(username)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên phục vụ."));
 
-        // ✅ Tạo order mới
+        // Tạo order mới
         Order order = Order.builder()
                 .table(table)
                 .waiter(waiter)
@@ -111,10 +111,10 @@ public class OrderService {
 
         String note = (req.getNote() == null || req.getNote().isBlank()) ? "" : req.getNote().trim();
 
-        // 🔹 Món waiter thêm luôn ở trạng thái PENDING
+        // Món waiter thêm luôn ở trạng thái PENDING
         OrderItemState newItemState = OrderItemState.PENDING;
 
-        // ✅ Tìm món trùng (cùng món, cùng note, cùng state)
+        // Tìm món trùng (cùng món, cùng note, cùng state)
         Optional<OrderItem> existingOpt = order.getItems().stream()
             .filter(i ->
                 i.getMenuItem().getId().equals(menu.getId()) &&
@@ -124,14 +124,14 @@ public class OrderService {
             .findFirst();
 
         if (existingOpt.isPresent()) {
-            // ➕ Cộng dồn
+            // Cộng dồn
             OrderItem existing = existingOpt.get();
             int newQty = existing.getQuantity() + req.getQuantity();
             existing.setQuantity(newQty);
             existing.setLineTotal(menu.getPrice().multiply(BigDecimal.valueOf(newQty)));
             itemRepo.save(existing);
         } else {
-            // 🆕 Tạo món mới (mặc định PENDING)
+            // Tạo món mới (mặc định có trạng thái PENDING)
             OrderItem item = OrderItem.builder()
                     .order(order)
                     .menuItem(menu)
@@ -192,78 +192,74 @@ public class OrderService {
     }
 
 
-@Transactional
-public OrderResponse updateItemState(Long itemId, OrderItemState newState) {
-    OrderItem item = itemRepo.findById(itemId)
+    @Transactional
+    public OrderResponse updateItemState(Long itemId, OrderItemState newState) {
+        OrderItem item = itemRepo.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy món."));
+
+        //  Không cho hạ cấp món đã SERVED
+        if (item.getState() == OrderItemState.SERVED && newState != OrderItemState.SERVED) {
+            throw new BadRequestException("Món đã phục vụ, không thể đổi trạng thái.");
+        }
+
+        if (newState == OrderItemState.DONE) {
+            if (item.getDoneAt() == null) {
+                item.setDoneAt(LocalDateTime.now());
+                String username = SecurityContextHolder.getContext().getAuthentication().getName();
+                Employee chef = employeeRepo.findByUserUsername(username)
+                        .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên bếp."));
+                item.setChef(chef);
+            }
+        } else {
+            item.setDoneAt(null);
+            item.setChef(null);
+        }
+
+        item.setState(newState);
+        itemRepo.save(item);
+
+        if (newState == OrderItemState.DONE) {
+            recipeService.consumeFor(item.getMenuItem());
+        }
+
+        // Reload order sạch
+        Order freshOrder = orderRepo.findById(item.getOrder().getId())
+                .orElseThrow(() -> new NotFoundException("Order không tồn tại."));
+
+        boolean allDone = freshOrder.getItems().stream()
+                .allMatch(i -> i.getState() == OrderItemState.DONE);
+
+        if (allDone) {
+            freshOrder.setStatus(OrderStatus.READY);
+            orderRepo.save(freshOrder);
+            orderEvents.orderChanged(freshOrder, "ORDER_ALL_DONE");
+        }
+
+        orderEvents.orderItemChanged(item, "ITEM_STATE_UPDATED");
+
+        return OrderMapper.toResponse(freshOrder);
+    }
+
+    @Transactional
+    public OrderResponse markItemServed(Long itemId) {
+        OrderItem item = itemRepo.findById(itemId)
             .orElseThrow(() -> new NotFoundException("Không tìm thấy món."));
 
-    // ❌ Không cho hạ cấp món đã SERVED
-    if (item.getState() == OrderItemState.SERVED && newState != OrderItemState.SERVED) {
-        throw new BadRequestException("Món đã phục vụ, không thể đổi trạng thái.");
-    }
-
-    if (newState == OrderItemState.DONE) {
-        if (item.getDoneAt() == null) {
-            item.setDoneAt(LocalDateTime.now());
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            Employee chef = employeeRepo.findByUserUsername(username)
-                    .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên bếp."));
-            item.setChef(chef);
+        if (item.getState() != OrderItemState.DONE && item.getState() != OrderItemState.SERVED) {
+            throw new BadRequestException("Món chưa nấu xong, không thể xác nhận phục vụ.");
         }
-    } else {
-        item.setDoneAt(null);
-        item.setChef(null);
+
+        item.setState(OrderItemState.SERVED);
+        itemRepo.save(item);
+
+        orderEvents.orderItemChanged(item, "ITEM_SERVED");
+
+        // Fetch order mới hoàn toàn từ DB 
+        Order freshOrder = orderRepo.findById(item.getOrder().getId())
+                .orElseThrow(() -> new NotFoundException("Order không tồn tại."));
+
+        return OrderMapper.toResponse(freshOrder);
     }
-
-    item.setState(newState);
-    itemRepo.save(item);
-
-    if (newState == OrderItemState.DONE) {
-        recipeService.consumeFor(item.getMenuItem());
-    }
-
-    // 🔄 Reload order sạch
-    Order freshOrder = orderRepo.findById(item.getOrder().getId())
-            .orElseThrow(() -> new NotFoundException("Order không tồn tại."));
-
-    boolean allDone = freshOrder.getItems().stream()
-            .allMatch(i -> i.getState() == OrderItemState.DONE);
-
-    if (allDone) {
-        freshOrder.setStatus(OrderStatus.READY);
-        orderRepo.save(freshOrder);
-        orderEvents.orderChanged(freshOrder, "ORDER_ALL_DONE");
-    }
-
-    orderEvents.orderItemChanged(item, "ITEM_STATE_UPDATED");
-
-    return OrderMapper.toResponse(freshOrder);
-}
-
-
-
-
-
-@Transactional
-public OrderResponse markItemServed(Long itemId) {
-    OrderItem item = itemRepo.findById(itemId)
-        .orElseThrow(() -> new NotFoundException("Không tìm thấy món."));
-
-    if (item.getState() != OrderItemState.DONE && item.getState() != OrderItemState.SERVED) {
-        throw new BadRequestException("Món chưa nấu xong, không thể xác nhận phục vụ.");
-    }
-
-    item.setState(OrderItemState.SERVED);
-    itemRepo.save(item);
-
-    orderEvents.orderItemChanged(item, "ITEM_SERVED");
-
-    // 🔥 Fetch order mới hoàn toàn từ DB (không dùng item.getOrder())
-    Order freshOrder = orderRepo.findById(item.getOrder().getId())
-            .orElseThrow(() -> new NotFoundException("Order không tồn tại."));
-
-    return OrderMapper.toResponse(freshOrder);
-}
 
 
 
@@ -312,17 +308,6 @@ public OrderResponse markItemServed(Long itemId) {
         order.setTotal(subtotal.subtract(order.getDiscount()!=null?order.getDiscount():BigDecimal.ZERO));
     }
 
-    // @Transactional
-    // public void checkAndUpdateOrderServed(Order order) {
-    //     boolean allServed = !order.getItems().isEmpty() &&
-    //             order.getItems().stream().allMatch(i -> i.getState()==OrderItemState.SERVED);
-    //     if (allServed && order.getStatus()!=OrderStatus.SERVED) {
-    //         order.setStatus(OrderStatus.SERVED);
-    //         orderRepo.save(order);
-    //         orderEvents.orderChanged(order, "ORDER_SERVED");
-    //     }
-    // }
-
     @Transactional
     public OrderResponse changeTable(Long orderId, Long newTableId) {
         Order order = orderRepo.findByIdForUpdate(orderId)
@@ -334,16 +319,16 @@ public OrderResponse markItemServed(Long itemId) {
         if (newTable.getStatus() != TableStatus.FREE)
             throw new BadRequestException("Bàn mới không trống, không thể chuyển.");
 
-        // ✅ Cập nhật trạng thái bàn
+        //  Cập nhật trạng thái bàn
         oldTable.setStatus(TableStatus.CLEANING);
         newTable.setStatus(TableStatus.OCCUPIED);
 
-        // ✅ Chuyển order sang bàn mới
+        // Chuyển order sang bàn mới
         order.setTable(newTable);
         orderRepo.save(order);
         tableRepo.saveAll(List.of(oldTable, newTable));
 
-        // 🔔 Gửi realtime update
+        // Gửi realtime update
         tableEvents.tableChanged(oldTable.getId(), oldTable.getCode(), oldTable.getCapacity(),
                 oldTable.getStatus().name(), "STATUS_CHANGED");
         tableEvents.tableChanged(newTable.getId(), newTable.getCode(), newTable.getCapacity(),
@@ -355,76 +340,72 @@ public OrderResponse markItemServed(Long itemId) {
     }
 
     @Transactional
-public OrderResponse completeOrder(Long orderId) {
-    Order order = orderRepo.findByIdForUpdate(orderId)
-            .orElseThrow(() -> new NotFoundException("Không tìm thấy order."));
+    public OrderResponse completeOrder(Long orderId) {
+        Order order = orderRepo.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy order."));
 
-    // ❗ Chỉ hoàn tất nếu tất cả món đều SERVED
-    boolean allServed = order.getItems().stream()
-            .allMatch(i -> i.getState() == OrderItemState.SERVED);
+        // Chỉ hoàn tất nếu tất cả món đều SERVED
+        boolean allServed = order.getItems().stream()
+                .allMatch(i -> i.getState() == OrderItemState.SERVED);
 
-    if (!allServed) {
-        throw new BadRequestException("Vẫn còn món chưa phục vụ.");
+        if (!allServed) {
+            throw new BadRequestException("Vẫn còn món chưa phục vụ.");
+        }
+
+        // Chuyển order sang SERVED
+        order.setStatus(OrderStatus.SERVED);
+        orderRepo.save(order);
+
+        // Gửi realtime cho waiter + cashier + kitchen
+        orderEvents.orderChanged(order, "ORDER_SERVED");
+
+        return OrderMapper.toResponse(order);
     }
 
-    // 👉 Chuyển order sang SERVED
-    order.setStatus(OrderStatus.SERVED);
-    orderRepo.save(order);
-
-    // 🔔 Gửi realtime cho waiter + cashier + kitchen
-    orderEvents.orderChanged(order, "ORDER_SERVED");
-
-    return OrderMapper.toResponse(order);
-}
-
-@Transactional(readOnly = true)
-public List<OrderResponse> getOrdersForKitchen() {
-    List<Order> list = orderRepo.findByStatus(OrderStatus.CONFIRMED);
-    return list.stream().map(OrderMapper::toResponse).toList();
-}
-
-@Transactional
-public OrderResponse markAllDone(Long orderId) {
-    Order order = orderRepo.findByIdForUpdate(orderId)
-            .orElseThrow(() -> new NotFoundException("Không tìm thấy order."));
-
-    String username = SecurityContextHolder.getContext().getAuthentication().getName();
-    Employee chef = employeeRepo.findByUserUsername(username)
-            .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên bếp."));
-
-    for (OrderItem item : order.getItems()) {
-
-        // ✅ Nếu đã SERVED rồi thì bỏ qua, không đụng vào
-        if (item.getState() == OrderItemState.SERVED) {
-            continue;
-        }
-
-        // ✅ Nếu đã DONE trước đó thì không trừ kho lại
-        boolean wasDoneOrServedBefore =
-                item.getState() == OrderItemState.DONE || item.getState() == OrderItemState.SERVED;
-
-        item.setState(OrderItemState.DONE);
-
-        if (item.getDoneAt() == null) {
-            item.setDoneAt(LocalDateTime.now());
-        }
-        item.setChef(chef);
-
-        // Chỉ trừ kho nếu trước đó chưa DONE/SERVED
-        if (!wasDoneOrServedBefore) {
-            recipeService.consumeFor(item.getMenuItem());
-        }
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getOrdersForKitchen() {
+        List<Order> list = orderRepo.findByStatus(OrderStatus.CONFIRMED);
+        return list.stream().map(OrderMapper::toResponse).toList();
     }
 
-    order.setStatus(OrderStatus.READY);
-    orderRepo.save(order);
+    @Transactional
+    public OrderResponse markAllDone(Long orderId) {
+        Order order = orderRepo.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy order."));
 
-    orderEvents.orderChanged(order, "ORDER_ALL_DONE");
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Employee chef = employeeRepo.findByUserUsername(username)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy nhân viên bếp."));
 
-    return OrderMapper.toResponse(order);
-}
+        for (OrderItem item : order.getItems()) {
 
+            // Nếu đã SERVED rồi thì bỏ qua, không đụng vào
+            if (item.getState() == OrderItemState.SERVED) {
+                continue;
+            }
 
+            // Nếu đã DONE trước đó thì không trừ kho lại
+            boolean wasDoneOrServedBefore =
+                    item.getState() == OrderItemState.DONE || item.getState() == OrderItemState.SERVED;
 
+            item.setState(OrderItemState.DONE);
 
+            if (item.getDoneAt() == null) {
+                item.setDoneAt(LocalDateTime.now());
+            }
+            item.setChef(chef);
+
+            // Chỉ trừ kho nếu trước đó chưa DONE/SERVED
+            if (!wasDoneOrServedBefore) {
+                recipeService.consumeFor(item.getMenuItem());
+            }
+        }
+
+        order.setStatus(OrderStatus.READY);
+        orderRepo.save(order);
+
+        orderEvents.orderChanged(order, "ORDER_ALL_DONE");
+
+        return OrderMapper.toResponse(order);
+    }
 }

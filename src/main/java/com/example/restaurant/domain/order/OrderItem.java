@@ -54,7 +54,7 @@
         @Column(name = "updated_at")
         private LocalDateTime updatedAt;
 
-        /** Thời điểm món nấu xong (khi state -> DONE) */
+        // Thời điểm món nấu xong (khi state -> DONE)
         @Column(name = "done_at")
         private LocalDateTime doneAt;
 

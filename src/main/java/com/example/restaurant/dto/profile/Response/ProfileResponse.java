@@ -13,7 +13,7 @@ public class ProfileResponse {
     private String email;
     private String phone;
     private String citizenId;
-    private String role;       // employeeId
-    private String avatarUrl; // ảnh đại diện
+    private String role;       
+    private String avatarUrl; 
 
 }

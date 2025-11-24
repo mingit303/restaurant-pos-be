@@ -77,7 +77,7 @@ public class AdminStatisticsService {
                 .map(i -> i.getDiscount() != null ? i.getDiscount() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Tiền mặt (CASH)
+        // Tiền mặt 
         BigDecimal cashBeforeVat = list.stream()
                 .filter(i -> i.getPaymentMethod() != null && i.getPaymentMethod().name().equals("CASH"))
                 .map(i -> {

@@ -52,7 +52,7 @@ public class VoucherController {
         return ResponseEntity.noContent().build();
     }
 
-    /** Cashier/Waiter gọi trước khi áp dụng mã */
+    // Cashier/Waiter gọi trước khi áp dụng mã 
     @GetMapping("/check")
     public ResponseEntity<VoucherCheckResponse> check(@RequestParam String code){
         return ResponseEntity.ok(service.check(code));

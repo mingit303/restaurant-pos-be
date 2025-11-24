@@ -47,9 +47,7 @@ public class AdminReportService {
         F_SMALL = fSmall;
     }
 
-    // ==============================
     // Formatting Helpers
-    // ==============================
     private String fmtMoney(Object v) {
         if (v == null) return "—";
         try {
@@ -87,9 +85,7 @@ public class AdminReportService {
         doc.add(p);
     }
 
-    // ==============================
     // HEADER
-    // ==============================
     private void addHeader(Document doc, String title, String subtitle) throws Exception {
 
         try {
@@ -118,9 +114,7 @@ public class AdminReportService {
         addDivider(doc);
     }
 
-    // ==============================
     // FOOTER
-    // ==============================
     private void addFooter(Document doc) throws Exception {
         addDivider(doc);
         Paragraph p = new Paragraph("Báo cáo nội bộ", F_NORMAL);
@@ -129,9 +123,7 @@ public class AdminReportService {
         doc.add(p);
     }
 
-    // ==============================
-    // 1. Revenue Report (A4 dọc)
-    // ==============================
+    // Revenue Report 
     public byte[] generateRevenueReport(Map<String, Object> data) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
@@ -177,9 +169,7 @@ public class AdminReportService {
         }
     }
 
-    // ==============================
-    // 2. Employee Section Helper
-    // ==============================
+    // Employee Section Helper
     private void addEmployeeSection(
             Document doc,
             String title,
@@ -226,9 +216,7 @@ public class AdminReportService {
         addDivider(doc);
     }
 
-    // ==============================
-    // 3. Employee Report (A4 dọc)
-    // ==============================
+    // Employee Report 
     public byte[] generateEmployeeReport(Map<String, List<Map<String, Object>>> data) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
@@ -264,9 +252,8 @@ public class AdminReportService {
             throw new RuntimeException("Lỗi báo cáo nhân viên: " + e.getMessage());
         }
     }
-    // ==============================
-    // 4. Top Menu Report (A4 dọc)
-    // ==============================
+
+    //  Top Menu Report 
     public byte[] generateTopMenuReport(List<Map<String, Object>> items) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
@@ -302,9 +289,8 @@ public class AdminReportService {
         }
     }
 
-    // ==============================
-    // 5. Menu Ranking Report (A4 dọc)
-    // ==============================
+
+    // Menu Ranking Report 
     public byte[] generateMenuRankingReport(Map<String, List<Map<String, Object>>> data) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
@@ -327,9 +313,7 @@ public class AdminReportService {
         }
     }
 
-    // ==============================
-    // 5b. Menu Section Helper
-    // ==============================
+    // Menu Section Helper
     private void addMenuSection(Document doc, String title, List<Map<String, Object>> items, Color bg) throws Exception {
 
         Paragraph h = new Paragraph("\n" + title, F_BOLD);
@@ -363,9 +347,8 @@ public class AdminReportService {
         addDivider(doc);
     }
 
-    // ==============================
-    // 6. Employee Report With Custom Title (A4 dọc)
-    // ==============================
+
+    // Employee Report With Custom Title 
     public byte[] generateEmployeeReportWithTitle(
             Map<String, List<Map<String, Object>>> data,
             String customTitle

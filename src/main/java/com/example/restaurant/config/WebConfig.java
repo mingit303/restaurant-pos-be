@@ -9,7 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
-        // ✅ Cho phép truy cập thư mục uploads/images/
+        // Cho phép truy cập thư mục uploads/images/
         String uploadPath = System.getProperty("user.dir") + "/uploads/images/";
         System.out.println("📂 Serving static files from: " + uploadPath);
 

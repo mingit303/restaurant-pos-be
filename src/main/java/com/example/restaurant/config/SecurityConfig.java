@@ -30,7 +30,7 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final ObjectMapper objectMapper;
 
-    @Value("${app.cors.allowed-origins}")//allowed-origins: http://localhost:5173,http://localhost:3000
+    @Value("${app.cors.allowed-origins}")
     private String[] allowedOrigins;
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter, ObjectMapper objectMapper) {
@@ -48,10 +48,10 @@ public class SecurityConfig {
             .logout(logout -> logout.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // ✅ Cho phép public các tài nguyên tĩnh
+                // Cho phép public các tài nguyên tĩnh
                 .requestMatchers("/images/**", "/uploads/**", "/favicon.ico").permitAll()
 
-                // ✅ Các API public khác
+                //  Các API public khác
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers(
@@ -61,14 +61,14 @@ public class SecurityConfig {
                 "/customers/**"
                 ).permitAll()
 
-                // ✅ Role-based routes
+                // Role-based routes
                 .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/cashier/**").hasAnyAuthority("ROLE_CASHIER", "ROLE_ADMIN")
                 .requestMatchers("/waiter/**").hasAnyAuthority("ROLE_WAITER", "ROLE_ADMIN")
                 .requestMatchers("/kitchen/**").hasAnyAuthority("ROLE_KITCHEN", "ROLE_ADMIN")
                 .requestMatchers("/invoices/**").hasAnyAuthority("ROLE_CASHIER", "ROLE_WAITER", "ROLE_ADMIN")
                 .requestMatchers("/customers/**").hasAnyAuthority("ROLE_WAITER", "ROLE_ADMIN")
-                // ✅ Mọi request còn lại yêu cầu đăng nhập
+                // Mọi request còn lại yêu cầu đăng nhập
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex

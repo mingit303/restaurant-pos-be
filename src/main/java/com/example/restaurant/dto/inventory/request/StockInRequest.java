@@ -2,14 +2,11 @@ package com.example.restaurant.dto.inventory.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import lombok.Data;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter @Setter
+@Data
 public class StockInRequest {
     @NotNull @Positive
     private Double amount;
 
-    // private String note;
 }

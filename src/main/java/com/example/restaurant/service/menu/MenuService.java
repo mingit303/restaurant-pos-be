@@ -39,7 +39,7 @@ public class MenuService {
     private static final Path UPLOAD_DIR =
         Paths.get(System.getProperty("user.dir"), "uploads", "images", "menu");
 
-    // ✅ Danh sách menu
+    // Danh sách menu
     @Transactional(readOnly = true)
     public Page<MenuItemResponse> list(int page, int size, String keyword, Long categoryId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
@@ -57,7 +57,7 @@ public class MenuService {
         return menuRepo.findAll(spec, pageable).map(MenuMapper::toResponse);
     }
 
-    // ✅ Tạo mới
+    // Tạo mới
     @Transactional
     public MenuItemResponse create(MenuItemRequest req) {
         MenuCategory cat = catRepo.findById(req.getCategoryId()).orElseThrow();
@@ -76,7 +76,7 @@ public class MenuService {
         return MenuMapper.toResponseWithRecipe(m);
     }
 
-    // ✅ Cập nhật
+    //  Cập nhật
     @Transactional
     public MenuItemResponse update(Long id, MenuItemRequest req) {
         MenuItem m = menuRepo.findById(id).orElseThrow();
@@ -105,15 +105,15 @@ public class MenuService {
         MenuItem m = menuRepo.findById(id)
             .orElseThrow(() -> new NotFoundException("Không tìm thấy món."));
 
-        // 1) OrderItem dependency
+        // OrderItem dependency
         if (orderItemRepo.existsByMenuItem_Id(id)) {
             throw new BadRequestException("Không thể xóa món đã thuộc các đơn hàng");
         }
 
-        // 2) Xóa ảnh
+        // Xóa ảnh
         deleteOldImage(m.getImageUrl());
 
-        // 3) Xóa công thức
+        // Xóa công thức
         recipeRepo.findByMenuItem(m).ifPresent(recipeRepo::delete);
 
         menuRepo.delete(m);
@@ -121,12 +121,12 @@ public class MenuService {
     }
 
 
-    // 🔹 helpers
+    // Helpers
     private void upsertRecipe(MenuItem m, MenuItemRequest req) {
         var lines = req.getRecipeItems();
         var optRecipe = recipeRepo.findByMenuItem(m);
 
-        // ❎ Nếu không có nguyên liệu -> xóa công thức cũ nếu có
+        // Nếu không có nguyên liệu thì xóa công thức cũ nếu có
         if (lines == null || lines.isEmpty()) {
             optRecipe.ifPresent(r -> {
                 riRepo.deleteAll(r.getIngredients());
@@ -135,7 +135,7 @@ public class MenuService {
             return;
         }
 
-        // ✅ Nếu có nguyên liệu -> cập nhật hoặc tạo mới
+        // Nếu có nguyên liệu thì cập nhật hoặc tạo mới
         Recipe recipe = optRecipe.orElseGet(() -> Recipe.builder().menuItem(m).build());
         riRepo.deleteAll(recipe.getIngredients());
         recipe.getIngredients().clear();
@@ -166,7 +166,7 @@ public class MenuService {
     public MenuItemResponse toggleAvailable(Long id) {
         MenuItem item = menuRepo.findById(id).orElseThrow();
 
-        // Nếu đang OFF mà muốn bật lại
+        // Nếu đang off món mà muốn bật lại
         if (!item.isAvailable()) {
             var recipe = item.getRecipe();
             if (recipe != null) {

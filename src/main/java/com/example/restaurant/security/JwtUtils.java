@@ -29,7 +29,7 @@ public class JwtUtils {
         return Algorithm.HMAC256(jwtSecret.getBytes());
     }
 
-    // ✅ Sinh Access Token (chỉ 1 role)
+    //  Sinh Access Token (1 role)
     public String generateAccessToken(String username, String role) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + accessExpirationMs);
@@ -43,7 +43,7 @@ public class JwtUtils {
                 .sign(algorithm());
     }
 
-    // ✅ Sinh Refresh Token (chỉ cần username)
+    // Sinh Refresh Token (chỉ cần username)
     public String generateRefreshToken(String username) {
         Date now = new Date();
         Date exp = new Date(now.getTime() + refreshExpirationMs);
@@ -56,7 +56,7 @@ public class JwtUtils {
                 .sign(algorithm());
     }
 
-    // ✅ Giải mã token
+    // Giải mã token
     private DecodedJWT decodeToken(String token) {
         return JWT.require(algorithm())
                 .withIssuer(issuer)
@@ -64,7 +64,7 @@ public class JwtUtils {
                 .verify(token);
     }
 
-    // ✅ Lấy username
+    // Lấy username
     public String extractUsername(String token) {
         try {
             return decodeToken(token).getSubject();
@@ -73,7 +73,7 @@ public class JwtUtils {
         }
     }
 
-    // ✅ Lấy role
+    //  Lấy role
     public String extractRole(String token) {
         try {
             return decodeToken(token).getClaim("role").asString();
@@ -82,7 +82,7 @@ public class JwtUtils {
         }
     }
 
-    // ✅ Kiểm tra token hợp lệ
+    // Kiểm tra token hợp lệ
     public boolean isTokenValid(String token, UserDetails userDetails) {
         String username = extractUsername(token);
         return username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token);

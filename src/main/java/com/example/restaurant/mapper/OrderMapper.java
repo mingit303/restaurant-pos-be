@@ -33,13 +33,6 @@ public class OrderMapper {
                 .map(OrderMapper::mapItem)
                 .collect(Collectors.toList());
 
-        // System.out.println("=== Mapper debug ===");
-        // System.out.println("Table: " + (order.getTable() != null));
-        // System.out.println("Waiter: " + (order.getWaiter() != null));
-        // System.out.println("Items: " + order.getItems().size());
-        // System.out.println("Subtotal: " + order.getSubtotal());
-        // System.out.println("Total: " + order.getTotal());
-
         return new OrderResponse(
                 order.getId(), table, order.getStatus().name(), waiter,
                 items, order.getSubtotal(), order.getDiscount(),

@@ -52,11 +52,11 @@ public class MenuController {
             throw new IllegalArgumentException("File trống!");
         }
             System.out.println("Working dir: " + System.getProperty("user.dir"));
-        // ✅ Thư mục lưu ảnh
+        //  Thư mục lưu ảnh
         Path uploadDir = Paths.get("uploads/images/menu");
         Files.createDirectories(uploadDir);
 
-        // ✅ Giữ lại phần mở rộng file (ví dụ: .jpg, .png, .jpeg)
+        //  Giữ lại phần mở rộng file (ví dụ: .jpg, .png, .jpeg)
         String originalName = file.getOriginalFilename();
         String extension = "";
         if (originalName != null && originalName.contains(".")) {
@@ -66,14 +66,14 @@ public class MenuController {
             extension = ".jpg";
         }
 
-        // ✅ Tạo tên file duy nhất
+        // Tạo tên file duy nhất
         String filename = UUID.randomUUID() + extension;
 
-        // ✅ Lưu file vào thư mục static
+        //  Lưu file vào thư mục static
         Path target = uploadDir.resolve(filename);
         Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
 
-        // ✅ Trả về URL để FE hiển thị
+        // Trả về URL để FE hiển thị
         String imageUrl = "/images/menu/" + filename;
         
         return ResponseEntity.ok(Map.of("imageUrl", imageUrl));

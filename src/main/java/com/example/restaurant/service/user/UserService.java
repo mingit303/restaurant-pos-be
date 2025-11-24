@@ -72,7 +72,7 @@ public class UserService {
         User u = userRepo.findById(id)
             .orElseThrow(() -> new NotFoundException("Không tìm thấy user."));
 
-        // Nếu user có employee → employee bị check ở EmployeeService
+        // Nếu user có employee thì employee bị check ở EmployeeService
         employeeRepo.findByUser(u).ifPresent(emp -> {
             emp.setUser(null);
             employeeRepo.save(emp);
@@ -81,53 +81,29 @@ public class UserService {
         userRepo.delete(u);
     }
 
-    
-    // ✅ TÌM KIẾM VÀ LỌC AN TOÀN
-    // @Transactional(readOnly = true)
-    // public List<UserResponse> searchUsers(String keyword, String role, String status) {
-    //     // Xử lý chuỗi null, rỗng hoặc "null"
-    //     keyword = (keyword == null || keyword.isBlank() || keyword.equalsIgnoreCase("null")) ? null : keyword.trim();
-    //     role = (role == null || role.isBlank() || role.equalsIgnoreCase("null")) ? null : role.trim();
-    //     status = (status == null || status.isBlank() || status.equalsIgnoreCase("null")) ? null : status.trim();
-
-    //     UserStatus statusEnum = null;
-    //     if (status != null) {
-    //         try {
-    //             statusEnum = UserStatus.valueOf(status);
-    //         } catch (IllegalArgumentException e) {
-    //             statusEnum = null; // bỏ qua nếu sai
-    //         }
-    //     }
-
-    //     return userRepo.searchUsers(keyword, role, statusEnum)
-    //             .stream()
-    //             .map(UserResponse::fromEntity)
-    //             .collect(Collectors.toList());
-    // }
     @Transactional(readOnly = true)
-public Map<String, Object> searchUsers(String keyword, String role, String status, int page, int size) {
-    keyword = (keyword == null || keyword.isBlank() || keyword.equalsIgnoreCase("null")) ? null : keyword.trim();
-    role = (role == null || role.isBlank() || role.equalsIgnoreCase("null")) ? null : role.trim();
-    status = (status == null || status.isBlank() || status.equalsIgnoreCase("null")) ? null : status.trim();
+    public Map<String, Object> searchUsers(String keyword, String role, String status, int page, int size) {
+        keyword = (keyword == null || keyword.isBlank() || keyword.equalsIgnoreCase("null")) ? null : keyword.trim();
+        role = (role == null || role.isBlank() || role.equalsIgnoreCase("null")) ? null : role.trim();
+        status = (status == null || status.isBlank() || status.equalsIgnoreCase("null")) ? null : status.trim();
 
-    UserStatus statusEnum = null;
-    if (status != null) {
-        try {
-            statusEnum = UserStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
-            statusEnum = null;
+        UserStatus statusEnum = null;
+        if (status != null) {
+            try {
+                statusEnum = UserStatus.valueOf(status);
+            } catch (IllegalArgumentException e) {
+                statusEnum = null;
+            }
         }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
+        Page<User> userPage = userRepo.searchUsers(keyword, role, statusEnum, pageable);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("content", userPage.getContent().stream().map(UserResponse::fromEntity).toList());
+        result.put("currentPage", userPage.getNumber());
+        result.put("totalPages", userPage.getTotalPages());
+        result.put("totalElements", userPage.getTotalElements());
+        return result;
     }
-
-    Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
-    Page<User> userPage = userRepo.searchUsers(keyword, role, statusEnum, pageable);
-
-    Map<String, Object> result = new HashMap<>();
-    result.put("content", userPage.getContent().stream().map(UserResponse::fromEntity).toList());
-    result.put("currentPage", userPage.getNumber());
-    result.put("totalPages", userPage.getTotalPages());
-    result.put("totalElements", userPage.getTotalElements());
-    return result;
-    }
-
 }

@@ -1,7 +1,9 @@
 package com.example.restaurant.dto.table.request;
 
 import jakarta.validation.constraints.*;
+import lombok.Data;
 
+@Data
 public class CreateTableRequest {
 
     @NotBlank
@@ -12,7 +14,6 @@ public class CreateTableRequest {
     @Min(1)
     private Integer capacity;
 
-    // Constructors
     public CreateTableRequest() {}
 
     public CreateTableRequest(String code, Integer capacity) {
@@ -20,9 +21,4 @@ public class CreateTableRequest {
         this.capacity = capacity;
     }
 
-    // Getters & Setters
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
-    public Integer getCapacity() { return capacity; }
-    public void setCapacity(Integer capacity) { this.capacity = capacity; }
 }

@@ -29,7 +29,7 @@ public class AuthService {
         this.refreshTokenRepo = refreshTokenRepo;
     }
 
-    /** 🔑 Đăng nhập */
+    // Đăng nhập
     @Transactional
     public AuthResponse login(LoginRequest req) {
         try {
@@ -43,7 +43,7 @@ public class AuthService {
         User user = userRepo.findByUsername(req.getUsername())
                 .orElseThrow(() -> new BadRequestException("Không tìm thấy tài khoản người dùng"));
 
-        // 🚫 Kiểm tra trạng thái tài khoản
+        // Kiểm tra trạng thái tài khoản
         if (user.getStatus() == UserStatus.SUSPENDED)
             throw new BadRequestException("Tài khoản đang bị tạm khóa.");
         if (user.getStatus() == UserStatus.DISABLED)
@@ -53,7 +53,7 @@ public class AuthService {
             userRepo.save(user);
         }
 
-        // 🧠 Thu hồi toàn bộ refresh token cũ (nếu có)
+        // Thu hồi toàn bộ refresh token cũ (nếu có)
         refreshTokenRepo.findAll().stream()
                 .filter(t -> t.getUser().getId().equals(user.getId()) && !t.isRevoked())
                 .forEach(t -> {
@@ -61,12 +61,12 @@ public class AuthService {
                     refreshTokenRepo.save(t);
                 });
 
-        // ✅ Sinh token mới
+        // Sinh token mới
         String roleName = user.getRole().getName();
         String accessToken = jwtUtils.generateAccessToken(user.getUsername(), roleName);
         String refreshToken = jwtUtils.generateRefreshToken(user.getUsername());
 
-        // ✅ Lưu refresh token mới vào DB
+        // Lưu refresh token mới vào DB
         RefreshToken tokenEntity = RefreshToken.builder()
                 .token(refreshToken)
                 .user(user)
@@ -75,7 +75,7 @@ public class AuthService {
                 .build();
         refreshTokenRepo.save(tokenEntity);
 
-        // ✅ Trả response
+        // Trả response
         return AuthResponse.builder()
                 .username(user.getUsername())
                 .roleName(roleName)
@@ -84,7 +84,7 @@ public class AuthService {
                 .build();
     }
 
-    /** ♻️ Làm mới Access Token */
+    // Làm mới Access Token
     @Transactional(readOnly = true)
     public TokenRefreshResponse refresh(String refreshToken) {
         RefreshToken tokenEntity = refreshTokenRepo.findByTokenAndRevokedFalse(refreshToken)
@@ -102,7 +102,7 @@ public class AuthService {
         return new TokenRefreshResponse(newAccess);
     }
 
-    /** 🚪 Đăng xuất (thu hồi token trong DB) */
+    // Đăng xuất (thu hồi token trong DB)
     @Transactional
     public void logout(String refreshToken) {
         refreshTokenRepo.findByToken(refreshToken)

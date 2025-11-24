@@ -31,38 +31,38 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     Integer countItemsSoldToday();
 
     @Query("""
-    SELECT new map(
-        m.name as name,
-        SUM(oi.quantity) as quantitySold,
-        SUM(oi.lineTotal) as totalRevenue
-    )
-    FROM OrderItem oi
-    JOIN oi.menuItem m
-    WHERE FUNCTION('MONTH', oi.createdAt) = :month
-      AND FUNCTION('YEAR', oi.createdAt) = :year
-    GROUP BY m.name
-    ORDER BY SUM(oi.quantity) DESC
-""")
-List<Map<String, Object>> findTopSelling(@Param("month") Integer month, @Param("year") Integer year);
+        SELECT new map(
+            m.name as name,
+            SUM(oi.quantity) as quantitySold,
+            SUM(oi.lineTotal) as totalRevenue
+        )
+        FROM OrderItem oi
+        JOIN oi.menuItem m
+        WHERE FUNCTION('MONTH', oi.createdAt) = :month
+        AND FUNCTION('YEAR', oi.createdAt) = :year
+        GROUP BY m.name
+        ORDER BY SUM(oi.quantity) DESC
+    """)
+    List<Map<String, Object>> findTopSelling(@Param("month") Integer month, @Param("year") Integer year);
 
-@Query("""
-    SELECT new map(
-        m.name as name,
-        SUM(oi.quantity) as quantitySold,
-        SUM(oi.lineTotal) as totalRevenue
-    )
-    FROM OrderItem oi
-    JOIN oi.menuItem m
-    WHERE FUNCTION('MONTH', oi.createdAt) = :month
-      AND FUNCTION('YEAR', oi.createdAt) = :year
-    GROUP BY m.name
-    ORDER BY SUM(oi.quantity) ASC
-""")
-List<Map<String, Object>> findLeastSelling(@Param("month") Integer month, @Param("year") Integer year);
+    @Query("""
+        SELECT new map(
+            m.name as name,
+            SUM(oi.quantity) as quantitySold,
+            SUM(oi.lineTotal) as totalRevenue
+        )
+        FROM OrderItem oi
+        JOIN oi.menuItem m
+        WHERE FUNCTION('MONTH', oi.createdAt) = :month
+        AND FUNCTION('YEAR', oi.createdAt) = :year
+        GROUP BY m.name
+        ORDER BY SUM(oi.quantity) ASC
+    """)
+    List<Map<String, Object>> findLeastSelling(@Param("month") Integer month, @Param("year") Integer year);
 
-boolean existsByMenuItem_Id(Long id);
+    boolean existsByMenuItem_Id(Long id);
 
-List<OrderItem> findTop10ByMenuItem_Id(Long id);
-boolean existsByChef_Id(Long chefId);
+    List<OrderItem> findTop10ByMenuItem_Id(Long id);
+    boolean existsByChef_Id(Long chefId);
 
 }

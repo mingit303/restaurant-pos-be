@@ -23,13 +23,13 @@ public class EmployeeController {
         this.service = service;
     }
 
-    // ADMIN: xem tất cả nhân viên
+    // admin: xem tất cả nhân viên
     @GetMapping
     public ResponseEntity<List<EmployeeResponse>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
-    // ADMIN: xem chi tiết nhân viên
+    // admin: xem chi tiết nhân viên
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
@@ -46,19 +46,19 @@ public class EmployeeController {
         return ResponseEntity.ok(service.searchEmployees(keyword, gender, role, page, size));
     }
 
-    // ADMIN: thêm nhân viên (kèm tài khoản)
+    // admin: thêm nhân viên (kèm tài khoản)
     @PostMapping
     public ResponseEntity<EmployeeResponse> create(@Valid @RequestBody EmployeeRequest req) {
         return ResponseEntity.ok(service.create(req));
     }
 
-    // NHÂN VIÊN: xem thông tin cá nhân
+    // nhân viên: xem thông tin cá nhân
     @GetMapping("/me")
     public ResponseEntity<EmployeeResponse> getSelf(Authentication auth) {
         return ResponseEntity.ok(service.getSelf(auth.getName()));
     }
 
-    // NHÂN VIÊN: cập nhật thông tin cá nhân
+    // nhân viên: cập nhật thông tin cá nhân
     @PatchMapping("/me")
     public ResponseEntity<EmployeeResponse> updateSelf(@Valid @RequestBody EmployeeRequest req, Authentication auth) {
         return ResponseEntity.ok(service.updateSelf(auth.getName(), req));

@@ -15,13 +15,12 @@ public class TableEventPublisher {
 
     private final SimpMessagingTemplate ws;
 
-    /** Gửi dữ liệu realtime tới FE */
+    // Gửi dữ liệu realtime tới FE 
     public void send(String topic, Object payload) {
-        log.info("🔔 WS -> {} : {}", topic, payload);
         ws.convertAndSend(topic, payload);
     }
 
-    /** Khi bàn được tạo hoặc cập nhật */
+    // Khi bàn được tạo hoặc cập nhật
     public void tableChanged(Long id, String code, Integer capacity, String status, String type) {
         send("/topic/tables", Map.of(
                 "type", type, // CREATED, UPDATED, STATUS_CHANGED
@@ -33,7 +32,7 @@ public class TableEventPublisher {
         ));
     }
 
-    /** Khi bàn bị xóa */
+    // Khi bàn bị xóa
     public void tableDeleted(Long id, String code) {
         send("/topic/tables/delete", Map.of(
             "action", "DELETED",

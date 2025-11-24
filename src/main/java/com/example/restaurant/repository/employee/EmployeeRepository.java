@@ -17,7 +17,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     Optional<Employee> findByUserUsername(String username);
     Optional<Employee> findByUser(User user);
 
-    // 🔍 Tìm kiếm nhân viên
+    // Tìm kiếm nhân viên
     @Query("""
         SELECT e FROM Employee e
         LEFT JOIN e.user u
@@ -34,7 +34,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
         Pageable pageable
     );
 
-    /* 🍽️ PHỤC VỤ — đếm số ORDER đã hoàn tất thanh toán (PAID) */
+    /* PHỤC VỤ — đếm số ORDER đã hoàn tất thanh toán (PAID) */
     @Query("""
         SELECT new map(
             e.fullName as name,
@@ -56,7 +56,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     );
 
 
-    /* 💵 THU NGÂN — đếm số hóa đơn đã thanh toán + tổng doanh thu */
+    /* THU NGÂN — đếm số hóa đơn đã thanh toán + tổng doanh thu */
     @Query("""
         SELECT new map(
             e.fullName as name,
@@ -77,7 +77,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     );
 
 
-    /* 👨‍🍳 BẾP — đếm món đã SERVED hoặc DONE, theo đầu bếp */
+    /*  BẾP — đếm món đã SERVED hoặc DONE, theo đầu bếp */
     @Query("""
         SELECT new map(
             e.fullName as name,

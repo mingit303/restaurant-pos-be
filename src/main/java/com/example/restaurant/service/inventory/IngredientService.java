@@ -20,9 +20,7 @@ public class IngredientService {
 
     private final IngredientRepository ingredientRepo;
     private final RecipeIngredientRepository recipeIngredientRepo;
-    // ======================
-    // LIST
-    // ======================
+
     @Transactional(readOnly = true)
     public Page<IngredientResponse> list(int page, int size, String keyword) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
@@ -41,13 +39,11 @@ public class IngredientService {
         ));
     }
 
-    // ======================
-    // CREATE
-    // ======================
+
     @Transactional
     public IngredientResponse create(IngredientRequest req) {
 
-        // ❗ Check duplicate
+        // Check duplicate
         if (ingredientRepo.existsByNameIgnoreCase(req.getName()))
             throw new RuntimeException("Tên nguyên liệu đã tồn tại!");
 
@@ -73,49 +69,45 @@ public class IngredientService {
         );
     }
 
-    // ======================
-    // UPDATE
-    // ======================
-    @Transactional
-    public IngredientResponse update(Long id, IngredientRequest req) {
 
-        Ingredient i = ingredientRepo.findById(id)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy nguyên liệu!"));
+        @Transactional
+        public IngredientResponse update(Long id, IngredientRequest req) {
 
-        // ❗ Check duplicate except current ID
-        if (ingredientRepo.existsByNameIgnoreCaseAndIdNot(req.getName(), id))
-            throw new RuntimeException("Tên nguyên liệu đã tồn tại!");
+                Ingredient i = ingredientRepo.findById(id)
+                        .orElseThrow(() -> new NotFoundException("Không tìm thấy nguyên liệu!"));
 
-        i.setName(req.getName());
-        i.setBaseUnit(req.getBaseUnit());
-        i.setStockQuantity(req.getStockQuantity());
-        i.setUseUnit(req.getUseUnit());
-        i.setConvertRate(req.getConvertRate());
-        i.setThreshold(req.getThreshold());
+                // Check duplicate except current ID
+                if (ingredientRepo.existsByNameIgnoreCaseAndIdNot(req.getName(), id))
+                throw new RuntimeException("Tên nguyên liệu đã tồn tại!");
 
-        ingredientRepo.save(i);
+                i.setName(req.getName());
+                i.setBaseUnit(req.getBaseUnit());
+                i.setStockQuantity(req.getStockQuantity());
+                i.setUseUnit(req.getUseUnit());
+                i.setConvertRate(req.getConvertRate());
+                i.setThreshold(req.getThreshold());
 
-        return new IngredientResponse(
-                i.getId(),
-                i.getName(),
-                i.getStockQuantity(),
-                i.getBaseUnit(),
-                i.getUseUnit(),
-                i.getConvertRate(),
-                i.getThreshold()
-        );
-    }
+                ingredientRepo.save(i);
 
-    // ======================
-    // DELETE
-    // ======================
+                return new IngredientResponse(
+                        i.getId(),
+                        i.getName(),
+                        i.getStockQuantity(),
+                        i.getBaseUnit(),
+                        i.getUseUnit(),
+                        i.getConvertRate(),
+                        i.getThreshold()
+                );
+        }
+
+
         @Transactional
         public void delete(Long id) {
 
                 Ingredient ing = ingredientRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy nguyên liệu."));
 
-                // 1) Check công thức
+                //Check công thức
                 if (recipeIngredientRepo.existsByIngredient_Id(id)) {
                         
                         throw new BadRequestException("Không thể xóa. Nguyên liệu đang dùng trong các món");
